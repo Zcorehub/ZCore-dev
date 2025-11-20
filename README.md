@@ -10,6 +10,8 @@ Credit Score & Reputación Programable para DeFi y Web3.
 
 En DeFi hoy necesitas depositar 150%–200% de colateral porque no existe historial crediticio descentralizado. Eso bloquea miles de millones y frena adopción. ZCore provee una API que entrega en milisegundos: score del usuario, límite recomendado y nivel de riesgo. Cada pago confirmado on-chain actualiza su reputación; buenos pagadores obtienen mejores condiciones en cualquier protocolo integrado. Usamos Zero-Knowledge Proofs para validar umbrales (ej. "score > 700") sin revelar datos sensibles.
 
+**Estado Actual:** MVP Backend implementado con API REST funcional, base de datos MySQL, y documentación Swagger.
+
 ---
 
 ## Qué es ZCore
@@ -80,35 +82,32 @@ Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% �
 
 ---
 
-## Endpoints (MVP)
+## Endpoints (Implementados)
 
-### Scoring & Crédito
+### Autenticación
 
-- `POST /score` – Calcular score inicial.
-- `GET /score/{userId}` – Score actual.
-- `GET /score/dinamico/{userId}` – Componentes del score.
-- `POST /credito/asignar` – Asignar límite inicial.
-- `GET /credito/limite/{userId}` – Límite recomendado.
+- `POST /api/auth/register` – Registrar usuario con cuestionario
+- `POST /api/auth/login` – Login de usuario existente
 
-### Transacciones & Pagos
+### Usuarios
 
-- `POST /transaccion` – Registrar préstamo/desembolso.
-- `GET /transaccion/{userId}` – Historial de transacciones.
-- `POST /pago` – Registrar pago (notificación webhook DeFi).
-- `POST /pago/validar` – Validar estado de pago pendiente.
-- `POST /pago/webhook` – Endpoint dedicado para eventos.
+- `POST /api/user/request` – Solicitar evaluación de scoring
+- `GET /api/user/{wallet}/profile` – Obtener perfil del usuario
 
-### Estado / Identidad / Legal
+### Prestamistas
 
-- `GET /estado-cuenta/{userId}` – Resumen deuda y uso.
-- `POST /contrato/aceptar` – Aceptación términos (firma/kvc).
-- `POST /usuario/verificar` – Inicio proceso KYC / verificación.
+- `POST /api/lender/profiles` – Definir perfiles de riesgo
 
-### ZK Proofs
+### Pagos
 
-- `POST /zk/generar-prueba` – Generar prueba (ej: score > X).
-- `POST /zk/validar-prueba` – Validar prueba enviada.
-- `GET /zk/verificar/{proofId}` – Verificación posterior.
+- `POST /api/payment/report` – Reportar pago o default
+
+### Documentación
+
+- `GET /api-docs` – Interfaz Swagger UI
+- `GET /api-docs.json` – OpenAPI JSON spec
+
+**Nota:** Todos los endpoints están documentados y probables en Swagger UI en `/api-docs`
 
 ---
 
@@ -151,16 +150,30 @@ Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% �
 | 4. Legal & Identity | Responsabilidad formal             | KYC, firma electrónica, contratos legales, trazabilidad ampliada                                                                        |
 | 5. Escalabilidad    | Multi-chain + ML                   | Adaptadores multi-chain, modelos predictivos, tuning de riesgo                                                                          |
 
-### Enfoque del MVP (Hackathon)
+### Estado Actual del MVP
 
-Durante el hackathon nos centraremos en:
+**✅ Completado:**
 
-1. Circuito ZK mínimo que demuestre "score ≥ umbral" sin revelar el valor exacto.
-2. API REST básica: endpoints para crear usuario, calcular score inicial, consultar score y límite provisional, generar / validar prueba ZK.
-3. Simulación de registro de pago (sin integración on-chain completa) para mostrar actualización del score y regeneración de la prueba.
-4. Código modular preparado para extender a pagos verificados on-chain y más tipos de pruebas.
+1. API REST funcional con todos los endpoints core
+2. Base de datos modelada con Prisma (User, Lender, Request, Payment)
+3. Servicios de scoring, perfiles y pagos implementados
+4. Documentación Swagger completa y funcional
+5. Validaciones con Zod schemas
+6. Middleware de manejo de errores
 
-Quedan fuera del MVP: dashboard visual, ML avanzado, multi-chain, KYC formal, auditoría on-chain completa y optimización de performance de circuitos.
+**🚧 En Desarrollo:**
+
+1. Integración blockchain para verificación de pagos
+2. Circuitos ZK para pruebas de scoring privado
+3. Frontend/dashboard para prestamistas
+
+**📋 Roadmap:**
+
+1. Integración on-chain (smart contracts + listeners)
+2. Implementación ZK proofs
+3. Dashboard web
+4. Testing e2e
+5. Despliegue producción
 
 ---
 
@@ -195,18 +208,87 @@ Usuario genera prueba de que `score >= 700` sin revelar valor exacto; protocolo 
 
 ---
 
-## Stack Sugerido
+## Stack Tecnológico
 
-- **Backend:** Node.js (Express / Fastify / NestJS)
-- **DB:** PostgreSQL + Redis (cache de scores)
-- **Blockchain:** Inicial Ethereum / Polygon / (Hackathon: Stellar posible) + listeners.
-- **ZK:** Circom + snarkjs (zk-SNARKs) / Exploración de zkVM.
-- **Infra:** Docker, CI/CD GitHub Actions, Observabilidad (Grafana + Prometheus).
-- **Auth:** JWT + firmas de wallet (EIP-4361) + API Keys.
+### Implementado
+
+- **Backend:** Node.js + Express + TypeScript
+- **DB:** MySQL + Prisma ORM
+- **Documentación:** Swagger/OpenAPI 3.0
+- **Validación:** Zod schemas
+- **Dev Tools:** nodemon, ts-node
+
+### Próximas Fases
+
+- **Blockchain:** Ethereum / Polygon + listeners
+- **ZK:** Circom + snarkjs (zk-SNARKs)
+- **Cache:** Redis para scores
+- **Infra:** Docker, CI/CD GitHub Actions
+- **Auth:** JWT + firmas de wallet (EIP-4361)
 
 ---
 
-<!-- Sección de desarrollo local removida temporalmente: aún no existe sistema ejecutable. Se añadirá cuando se prepare la primera versión de código. -->
+## Desarrollo Local
+
+### Prerrequisitos
+
+- Node.js 16+
+- MySQL 8.0+
+- Git
+
+### Configuración
+
+1. **Clonar repositorio:**
+
+   ```bash
+   git clone https://github.com/Zcorehub/ZCore-dev.git
+   cd ZCore-dev/Server
+   ```
+
+2. **Instalar dependencias:**
+
+   ```bash
+   npm install
+   ```
+
+3. **Configurar base de datos:**
+
+   ```bash
+   # Crear base de datos MySQL
+   mysql -u root -p -e "CREATE DATABASE zcore;"
+
+   # Copiar variables de entorno
+   cp .env.example .env
+
+   # Editar .env con tus credenciales MySQL
+   # DATABASE_URL="mysql://user:password@localhost:3306/zcore"
+   ```
+
+4. **Ejecutar migraciones:**
+
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+5. **Iniciar servidor de desarrollo:**
+
+   ```bash
+   npm run dev
+   ```
+
+6. **Acceder a la API:**
+   - API: http://localhost:3000/api
+   - Swagger UI: http://localhost:3000/api-docs
+
+### Scripts Disponibles
+
+- `npm run dev` – Servidor de desarrollo con recarga automática
+- `npm run build` – Compilar TypeScript
+- `npm start` – Ejecutar servidor compilado
+- `npm run prisma:generate` – Generar cliente Prisma
+- `npm run prisma:migrate` – Aplicar migraciones
+- `npm run prisma:studio` – Abrir Prisma Studio
 
 ---
 
