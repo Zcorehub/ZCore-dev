@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String        @id @default(uuid())
+  walletAddress   String        @unique
+  score           Int           @default(500)
+  profileTier     String        @default("C")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  questionnaire   Json?
+  requests        Request[]
+  payments        Payment[]
+
+  @@index([walletAddress])
+}
+
+model Lender {
+  id         String   @id @default(uuid())
+  name       String
+  apiKey     String   @unique
+  profiles   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  requests   Request[]
+  payments   Payment[]
+
+  @@index([apiKey])
+}
+
+model Request {
+  id              String   @id @default(uuid())
+  userId          String
+  lenderId        String
+  profileAssigned String
+  maxAmount       Float
+  requestedAmount Float
+  status          String
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id])
+  lender          Lender   @relation(fields: [lenderId], references: [id])
+
+  @@index([userId, lenderId])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String
+  lenderId    String
+  requestId   String?
+  amount      Float
+  status      String
+  paymentDate DateTime
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  lender      Lender   @relation(fields: [lenderId], references: [id])
+
+  @@index([userId, lenderId, status])
+}
