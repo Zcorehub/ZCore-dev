@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prisma } from "../config/database";
 import {
   assignProfileTier,
-  calculateInitialScore,
+  calculateEnhancedScore,
 } from "../services/scoring.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
@@ -60,11 +60,63 @@ import { LoginRequest, RegisterRequest } from "../types";
  *                     type: string
  *                     description: Propósito del préstamo
  *                     example: "business"
+ *                   note:
+ *                     type: string
+ *                     description: "El sistema también obtendrá datos automáticamente de Stellar Horizon API"
  *     responses:
  *       201:
- *         description: Usuario registrado
+ *         description: Usuario registrado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User registered with Stellar integration"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     profileTier:
+ *                       type: string
+ *                       example: "B"
+ *                     score:
+ *                       type: number
+ *                       example: 650
+ *                     stellarIntegration:
+ *                       type: object
+ *                       properties:
+ *                         isValid:
+ *                           type: boolean
+ *                           example: true
+ *                         walletAge:
+ *                           type: number
+ *                           example: 120
+ *                         totalTransactions:
+ *                           type: number
+ *                           example: 45
+ *                         firstTransactionDate:
+ *                           type: string
+ *                           example: "2024-07-20T15:08:25Z"
+ *                     scoringBreakdown:
+ *                       type: object
+ *                       properties:
+ *                         questionnaireScore:
+ *                           type: number
+ *                           example: 450
+ *                         stellarScore:
+ *                           type: number
+ *                           example: 200
+ *                         finalScore:
+ *                           type: number
+ *                           example: 650
  *       200:
  *         description: Usuario ya existe
+ *       400:
+ *         description: Error de validación o wallet no encontrada en Stellar
  */
 export const registerUser = async (
   req: Request,
@@ -79,26 +131,51 @@ export const registerUser = async (
       return res.status(200).json({
         success: true,
         message: "User already registered",
-        data: { profileTier: existing.profileTier },
+        data: {
+          profileTier: existing.profileTier,
+          score: existing.score,
+        },
       });
     }
 
-    const score = calculateInitialScore(questionnaire);
+    // Usar scoring mejorado con integración de Stellar
+    const scoringResult = await calculateEnhancedScore(
+      questionnaire,
+      walletAddress
+    );
+    const { score, stellarData, breakdown } = scoringResult;
     const profileTier = assignProfileTier(score);
+
+    // Guardar datos extendidos en el cuestionario
+    const extendedQuestionnaire = {
+      ...questionnaire,
+      stellarData,
+      scoringBreakdown: breakdown,
+    };
 
     await prisma.user.create({
       data: {
         walletAddress,
         score,
         profileTier,
-        questionnaire,
+        questionnaire: extendedQuestionnaire as any,
       },
     });
 
     return res.status(201).json({
       success: true,
-      message: "User registered",
-      data: { profileTier },
+      message: "User registered with Stellar integration",
+      data: {
+        profileTier,
+        score,
+        stellarIntegration: {
+          isValid: stellarData.isValid,
+          walletAge: stellarData.walletAge,
+          totalTransactions: stellarData.totalTransactions,
+          firstTransactionDate: stellarData.firstTransactionDate,
+        },
+        scoringBreakdown: breakdown,
+      },
     });
   } catch (error) {
     return next(error);

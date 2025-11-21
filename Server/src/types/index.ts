@@ -5,7 +5,27 @@ export interface QuestionnaireData {
   defiInteractions?: number;
   monthlyIncome?: number;
   loanPurpose?: string;
-  [key: string]: number | string | undefined;
+  [key: string]: number | string | undefined | object;
+}
+
+export interface StellarWalletData {
+  walletAge: number;
+  totalTransactions: number;
+  successfulTransactions: number;
+  averageBalance: number;
+  accountAge: number;
+  operationsCount: number;
+  trustlineCount: number;
+  isValid: boolean;
+  firstTransactionDate: string | null;
+  [key: string]: number | boolean | string | null;
+}
+
+export interface ScoringBreakdown {
+  questionnaireScore: number;
+  stellarScore: number;
+  finalScore: number;
+  [key: string]: number;
 }
 
 export interface LenderProfile {

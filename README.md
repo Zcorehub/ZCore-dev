@@ -166,12 +166,14 @@ Basado en cuestionario de 5 variables:
 
 1. API REST completa con 6 endpoints funcionales
 2. Base de datos MySQL con 4 modelos (User, Lender, Request, Payment)
-3. Sistema de scoring con 5 variables y actualización dinámica
-4. Clasificación automática en tiers A/B/C
-5. Documentación Swagger interactiva completa
-6. Validaciones Zod y middleware de errores
-7. Configuración de prestamistas con perfiles personalizados
-8. Evaluación de elegibilidad automática
+3. **Sistema de scoring híbrido:** Cuestionario + Stellar Horizon API
+4. **Integración Stellar:** Verificación automática de wallets y datos on-chain
+5. Clasificación automática en tiers A/B/C
+6. Documentación Swagger interactiva completa
+7. Validaciones Zod y middleware de errores
+8. Configuración de prestamistas con perfiles personalizados
+9. Evaluación de elegibilidad automática
+10. **Fallback seguro** para wallets no encontradas en Stellar
 
 **🚧 En Desarrollo:**
 
@@ -220,9 +222,11 @@ Respuesta:
 
 - **Backend:** Node.js + Express + TypeScript
 - **DB:** MySQL + Prisma ORM
+- **Blockchain:** Stellar Horizon API integration
 - **Documentación:** Swagger/OpenAPI 3.0
 - **Validación:** Zod schemas
 - **Dev Tools:** nodemon, ts-node
+- **Scoring:** Algoritmo híbrido (cuestionario + datos on-chain)
 
 ### Próximas Fases
 
