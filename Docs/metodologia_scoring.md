@@ -244,12 +244,100 @@ export const evaluateEligibility = (score, profiles, requestedAmount) => {
 3. **Score Estático:** Entre pagos, el score no considera nuevos comportamientos
 4. **Modelo Simplista:** Fórmula lineal sin machine learning
 
+### Integración Stellar Blockchain (Implementado)
+
+El sistema ZCore ya incorpora validación on-chain mediante **Stellar Horizon API**, combinando datos auto-reportados con información verificable de blockchain:
+
+#### Scoring Híbrido Implementado
+
+**Peso 40% - Cuestionario Auto-Reportado**
+
+- **walletAge** (meses) × 0.2
+- **averageBalance** × 0.0001
+- **transactionCount** × 0.1
+- **defiInteractions** × 5.0
+- **monthlyIncome** × 0.0005
+
+**Peso 60% - Datos Verificados de Stellar Blockchain**
+
+Obtenidos automáticamente vía Horizon API:
+
+**1. Edad de Wallet (Máximo: 100 puntos)**
+
+- **Fuente**: Primera transacción encontrada en orden ascendente
+- **Cálculo**: `Math.min(walletAge / 365 * 50, 100)`
+- **Lógica**: 50 puntos por año de antigüedad, máximo 100 puntos (2+ años)
+
+**2. Actividad Transaccional (Máximo: 80 puntos)**
+
+- **Fuente**: Total de transacciones (límite 200 más recientes)
+- **Cálculo**: `Math.min(totalTransactions * 0.5, 80)`
+- **Lógica**: 0.5 puntos por transacción, máximo 80 puntos (160+ transacciones)
+
+**3. Tasa de Éxito (Máximo: 50 puntos)**
+
+- **Fuente**: Transacciones exitosas vs total
+- **Cálculo**: `(successfulTransactions / totalTransactions) * 50`
+- **Lógica**: Penaliza transacciones fallidas
+
+**4. Balance XLM (Máximo: 70 puntos)**
+
+- **Fuente**: Balance actual en asset nativo (XLM)
+- **Cálculo**: `Math.min(Math.log10(averageBalance + 1) * 20, 70)`
+- **Lógica**: Escala logarítmica para evitar dominancia de balances altos
+
+**5. Diversidad de Activos (Máximo: 50 puntos)**
+
+- **Fuente**: Número de trustlines (activos no nativos)
+- **Cálculo**: `Math.min(trustlineCount * 10, 50)`
+- **Lógica**: Más activos = mayor sofisticación DeFi
+
+**6. Actividad de Operaciones (Máximo: 30 puntos)**
+
+- **Fuente**: Operaciones realizadas (límite 200 más recientes)
+- **Cálculo**: `Math.min(operationsCount * 0.2, 30)`
+- **Lógica**: Operaciones indican uso activo de la red
+
+#### Fórmula de Integración Final
+
+```javascript
+// Stellar Score máximo: 380 puntos
+stellarScore =
+  ageScore + txScore + successScore + balanceScore + trustlineScore + opsScore;
+
+// Combinación final (40% cuestionario + 60% Stellar)
+finalScore = questionnaireScore * 0.4 + stellarScore * 0.6;
+
+// Normalización al rango 300-850
+normalizedScore = 300 + (finalScore / 600) * 550;
+```
+
+#### Casos Especiales del Sistema
+
+- **Wallet inexistente en Stellar**: Score = 0 para componente blockchain, fallback a cuestionario únicamente
+- **API failure**: Fallback automático a scoring tradicional solo con cuestionario
+- **Wallet nueva**: Se valora la existencia misma en Stellar (puntos base por estar en la red)
+
+#### Transparencia del Scoring
+
+El sistema retorna breakdown completo:
+
+```json
+{
+  "scoringBreakdown": {
+    "questionnaireScore": 450,
+    "stellarScore": 200,
+    "finalScore": 680
+  }
+}
+```
+
 ### Roadmap de Mejoras
 
-#### Fase 2: Validación On-Chain
+#### Fase 2: Validación Multi-Chain
 
-- **Análisis Real de Wallet:** Verificar balances y transacciones automáticamente
-- **Integración Multi-Chain:** Ethereum, Polygon, BSC, Solana
+- **Análisis Real de Wallet:** Extender a Ethereum, Polygon, BSC, Solana
+- **Integración Multi-Chain:** Combinar scores de múltiples blockchains
 - **DeFi Score:** Participación en protocolos específicos (Aave, Compound, Uniswap)
 
 #### Fase 3: Modelo Predictivo
