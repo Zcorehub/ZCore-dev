@@ -127,6 +127,26 @@ export const registerUser = async (
  *     responses:
  *       200:
  *         description: Login exitoso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     walletAddress:
+ *                       type: string
+ *                       example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                     score:
+ *                       type: number
+ *                       example: 650
+ *                     profileTier:
+ *                       type: string
+ *                       example: "B"
  *       404:
  *         description: Usuario no encontrado
  */
@@ -147,6 +167,7 @@ export const loginUser = async (
       success: true,
       data: {
         walletAddress: user.walletAddress,
+        score: user.score,
         profileTier: user.profileTier,
       },
     });
