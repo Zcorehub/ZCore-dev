@@ -1,4 +1,28 @@
-# Pruebas de Integración Stellar
+# Pruebas de Integración Stellar - Scoring Simplificado
+
+## Endpoints Actualizados
+
+### Registro de Usuario (Solo Wallet)
+
+```bash
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "walletAddress": "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+}
+```
+
+### Login de Usuario
+
+```bash
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "walletAddress": "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+}
+```
 
 ## Ejemplos de Wallets para Testing
 
@@ -6,108 +30,132 @@
 
 ```
 Wallet: GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP
-URL Horizon: https://horizon.stellar.org/accounts/GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP/transactions?order=asc&limit=1
+URL Horizon: https://horizon.stellar.org/accounts/GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP
 ```
 
-### Payload de Prueba para Registro
+### Wallet para Testing (Activa)
+
+```
+Wallet: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+URL Horizon: https://horizon.stellar.org/accounts/GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+```
+
+## Casos de Prueba
+
+### 1. Registro Exitoso (Wallet Válida)
+
+**Request:**
 
 ```json
 {
-  "walletAddress": "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP",
-  "questionnaire": {
-    "walletAge": 12,
-    "averageBalance": 1000.5,
-    "transactionCount": 25,
-    "defiInteractions": 5,
-    "monthlyIncome": 5000,
-    "loanPurpose": "business"
-  }
+  "walletAddress": "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
 }
 ```
 
-### Casos de Prueba
-
-1. **Wallet Válida:** Usar wallet con historial real
-2. **Wallet Inexistente:** `INVALID123WALLET456` (debería dar error 404)
-3. **Wallet Nueva:** Usar una con pocas transacciones
-
-### Respuesta Esperada con Stellar
+**Response Esperada:**
 
 ```json
 {
   "success": true,
-  "message": "User registered with Stellar integration",
+  "message": "User registered successfully",
   "data": {
-    "profileTier": "B",
-    "score": 680,
-    "stellarIntegration": {
-      "isValid": true,
-      "walletAge": 120,
-      "totalTransactions": 45,
-      "firstTransactionDate": "2024-07-20T15:08:25Z"
-    },
-    "scoringBreakdown": {
-      "questionnaireScore": 450,
-      "stellarScore": 200,
-      "finalScore": 680
-    }
+    "score": 280
   }
 }
 ```
 
-### Respuesta con Wallet Inexistente
+### 2. Wallet Inexistente
+
+**Request:**
+
+```json
+{
+  "walletAddress": "INVALID123WALLET456NOTREAL789"
+}
+```
+
+```json
+{
+  "success": false,
+  "error": "Invalid Stellar wallet address",
+  "message": "The provided wallet address does not exist on Stellar network",
+  "details": {
+    "walletAddress": "INVALID123WALLET456NOTREAL789",
+    "stellarNetwork": "mainnet",
+    "suggestion": "Please verify your Stellar wallet address and try again"
+  }
+}
+```
+
+### 3. Login de Usuario Registrado
+
+**Request:**
+
+```json
+{
+  "walletAddress": "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+}
+```
+
+**Response Esperada:**
 
 ```json
 {
   "success": true,
-  "message": "User registered with Stellar integration",
   "data": {
-    "profileTier": "C",
-    "score": 313,
-    "stellarIntegration": {
-      "isValid": false,
-      "walletAge": 0,
-      "totalTransactions": 0,
-      "firstTransactionDate": null
-    },
-    "scoringBreakdown": {
-      "questionnaireScore": 313,
-      "stellarScore": 0,
-      "finalScore": 313
-    }
+    "score": 280
   }
 }
 ```
 
-## Beneficios de la Integración
+### 4. Login de Usuario No Registrado
 
-1. **Verificación Automática**: No dependemos solo de datos auto-reportados
-2. **Scoring Más Preciso**: Datos reales de blockchain aumentan confiabilidad
-3. **Fallback Seguro**: Si Stellar falla, usamos solo el cuestionario
-4. **Transparencia**: El breakdown muestra cómo se calculó el score
-5. **Escalabilidad**: Fácil agregar otras blockchains en el futuro
+**Request:**
+
+```json
+{
+  "walletAddress": "GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A"
+}
+```
+
+**Response Esperada:**
+
+```json
+{
+  "success": false,
+  "error": "User not found"
+}
+```
+
+## Beneficios de la Implementación Actual
+
+1. **100% Verificado**: Todos los datos provienen de Stellar blockchain
+2. **Sin Auto-Reporte**: Elimina la posibilidad de manipulación de datos
+3. **Simplificado**: Solo requiere wallet address, sin formularios complejos
+4. **Transparente**: Score basado completamente en actividad on-chain
+5. **Escalable**: Arquitectura preparada para múltiples blockchains
 
 ---
 
-## Cálculo del Stellar Score
+## Cálculo del Stellar Score (Máximo 350 puntos)
 
 El **Stellar Score** se calcula automáticamente basado en datos reales de la blockchain Stellar obtenidos desde Horizon API.
 
-### Componentes del Score (Máximo 380 puntos)
+### Componentes del Score Optimizado
 
-#### 1. Edad de Wallet (Máximo: 100 puntos)
+#### 1. Edad de Wallet (Máximo: 80 puntos)
 
 - **Fuente**: Primera transacción encontrada en orden ascendente
-- **Cálculo**: `Math.min(walletAge / 365 * 50, 100)`
-- **Lógica**: 50 puntos por año de antigüedad, máximo 100 puntos (2+ años)
+- **Cálculo**: `Math.min(walletAge / 365 * 40, 80)`
+- **Lógica**: 40 puntos por año de antigüedad, máximo 80 puntos (2+ años)
 - **Ejemplo**: Wallet de 1.5 años = 75 puntos
 
-#### 2. Actividad Transaccional (Máximo: 80 puntos)
+#### 2. Actividad Transaccional (Máximo: 70 puntos)
 
 - **Fuente**: Total de transacciones (límite 200 más recientes)
-- **Cálculo**: `Math.min(totalTransactions * 0.5, 80)`
-- **Lógica**: 0.5 puntos por transacción, máximo 80 puntos (160+ transacciones)
-- **Ejemplo**: 100 transacciones = 50 puntos
+- **Cálculo**: `Math.min(totalTransactions * 0.4, 70)`
+- **Lógica**: 0.4 puntos por transacción, máximo 70 puntos (175+ transacciones)
+- **Ejemplo**: 100 transacciones = 40 puntos
 
 #### 3. Tasa de Éxito (Máximo: 50 puntos)
 
@@ -116,12 +164,12 @@ El **Stellar Score** se calcula automáticamente basado en datos reales de la bl
 - **Lógica**: Penaliza transacciones fallidas
 - **Ejemplo**: 95% éxito = 47.5 puntos
 
-#### 4. Balance XLM (Máximo: 70 puntos)
+#### 4. Balance XLM (Máximo: 60 puntos)
 
 - **Fuente**: Balance actual en asset nativo (XLM)
-- **Cálculo**: `Math.min(Math.log10(averageBalance + 1) * 20, 70)`
+- **Cálculo**: `Math.min(Math.log10(averageBalance + 1) * 15, 60)`
 - **Lógica**: Escala logarítmica para evitar dominancia de balances altos
-- **Ejemplo**: 1000 XLM = 60 puntos
+- **Ejemplo**: 1000 XLM = 45 puntos
 
 #### 5. Diversidad de Activos (Máximo: 50 puntos)
 

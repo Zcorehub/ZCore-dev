@@ -37,7 +37,6 @@ export interface LenderProfile {
 
 export interface RegisterRequest {
   walletAddress: string;
-  questionnaire: QuestionnaireData;
 }
 
 export interface LoginRequest {

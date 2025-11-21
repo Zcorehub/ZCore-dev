@@ -103,6 +103,84 @@ export const calculateEnhancedScore = async (
   }
 };
 
+// Nueva función que calcula score únicamente desde Stellar (máximo 350 puntos)
+export const calculateStellarOnlyScore = async (
+  walletAddress: string
+): Promise<{
+  score: number;
+  stellarData: StellarWalletData;
+}> => {
+  try {
+    // 1. Obtener datos de Stellar
+    const stellarData = await fetchStellarWalletData(walletAddress);
+
+    // 2. Si la wallet no es válida, no proceder
+    if (!stellarData.isValid) {
+      return {
+        score: 0,
+        stellarData,
+      };
+    }
+
+    // 3. Calcular score optimizado para 350 puntos máximo
+    const stellarScore = calculateOptimizedStellarScore(stellarData);
+
+    return {
+      score: stellarScore,
+      stellarData,
+    };
+  } catch (error) {
+    console.error("Error calculating Stellar-only score:", error);
+    throw new Error("Unable to validate Stellar wallet");
+  }
+};
+
+// Función optimizada para scoring solo con Stellar (máximo 350 puntos)
+const calculateOptimizedStellarScore = (
+  stellarData: StellarWalletData
+): number => {
+  if (!stellarData.isValid) {
+    return 0;
+  }
+
+  let score = 0;
+
+  // 1. Edad de wallet (máximo 80 puntos)
+  // Wallets más antiguas son más confiables
+  const ageScore = Math.min((stellarData.walletAge / 365) * 40, 80); // 40 puntos por año, máx 80
+  score += ageScore;
+
+  // 2. Actividad transaccional (máximo 70 puntos)
+  const txScore = Math.min(stellarData.totalTransactions * 0.4, 70);
+  score += txScore;
+
+  // 3. Tasa de éxito (máximo 50 puntos)
+  const successRate =
+    stellarData.totalTransactions > 0
+      ? stellarData.successfulTransactions / stellarData.totalTransactions
+      : 0;
+  const successScore = successRate * 50;
+  score += successScore;
+
+  // 4. Balance XLM (máximo 60 puntos)
+  // Usar log para evitar que balances muy altos dominen
+  const balanceScore = Math.min(
+    Math.log10(stellarData.averageBalance + 1) * 15,
+    60
+  );
+  score += balanceScore;
+
+  // 5. Diversidad de activos / DeFi usage (máximo 50 puntos)
+  const trustlineScore = Math.min(stellarData.trustlineCount * 10, 50);
+  score += trustlineScore;
+
+  // 6. Actividad de operaciones (máximo 40 puntos)
+  const opsScore = Math.min(stellarData.operationsCount * 0.25, 40);
+  score += opsScore;
+
+  return Math.round(score);
+};
+
 export const assignProfileTier = (score: number) => {
   if (score >= 750) return "A";
   if (score >= 650) return "B";
