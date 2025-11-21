@@ -6,6 +6,7 @@ export const getUserProfile = async (walletAddress: string) => {
     where: { walletAddress },
     select: {
       walletAddress: true,
+      score: true,
       profileTier: true,
       createdAt: true,
       updatedAt: true,
