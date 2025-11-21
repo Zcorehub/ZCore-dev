@@ -277,8 +277,7 @@ Respuesta:
 4. **Ejecutar migraciones:**
 
    ```bash
-   npx prisma generate
-   npx prisma db push
+   npx prisma generate && npm run prisma:migrate -- --name init
    ```
 
 5. **Iniciar servidor de desarrollo:**
