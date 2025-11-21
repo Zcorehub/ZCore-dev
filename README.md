@@ -57,28 +57,38 @@ DeFi Protocol ──> ZCore API ──> Servicios internos ──> DB / Blockcha
 
 ## Flujo Básico
 
-1. Usuario solicita préstamo en DeFi.
-2. Protocolo consulta `GET /score/{userId}` y `GET /credito/limite/{userId}`.
-3. ZCore responde score, límite recomendado, riesgo y (opcional) ZK proof.
-4. Protocolo decide y desembolsa (on-chain).
-5. Pago futuro: smart contract emite evento; DeFi notifica a `POST /pago` (o ZCore lo detecta directamente).
-6. ZCore verifica txHash on-chain, actualiza score y reputación.
-7. Nuevas solicitudes obtienen mejores (o peores) condiciones.
+1. Usuario se registra con `POST /api/auth/register` proporcionando wallet y cuestionario.
+2. Sistema calcula score inicial y asigna tier (A/B/C).
+3. Usuario solicita préstamo con `POST /api/user/request` especificando prestamista y monto.
+4. Sistema evalúa elegibilidad basado en score vs perfiles del prestamista.
+5. Prestamista puede reportar pagos con `POST /api/payment/report`.
+6. Sistema actualiza score dinámicamente (+10 pago, -30 default).
+7. Futuras solicitudes obtienen mejores/peores condiciones según historial.
 
 ---
 
-## Reglas de Score Dinámico (Ejemplo MVP)
+## Reglas de Score Dinámico (Implementado)
 
-```
-+ Pago a tiempo:        +10
-+ Pago adelantado:      +15
-+ Bajo uso (<30% límite) +5
-- Pago tardío:          -20
-- Default / no pago:    -30
-- Uso constante 100%:    -5
-```
+### Score Inicial (300-850)
 
-Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% · Diversidad 10% · Comportamiento on-chain 5%.
+Basado en cuestionario de 5 variables:
+
+- **walletAge** (meses) × 0.2
+- **averageBalance** × 0.0001
+- **transactionCount** × 0.1
+- **defiInteractions** × 5.0
+- **monthlyIncome** × 0.0005
+
+### Tiers Automáticos
+
+- **Tier A:** Score ≥ 750 (Premium)
+- **Tier B:** Score 650-749 (Intermedio)
+- **Tier C:** Score 300-649 (Básico)
+
+### Actualización por Pagos
+
+- **Pago exitoso:** +10 puntos
+- **Default:** -30 puntos
 
 ---
 
@@ -111,13 +121,13 @@ Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% �
 
 ---
 
-## Seguridad & Integridad
+## Seguridad & Validación
 
-- Verificación on-chain de `txHash` antes de impactar score.
-- Idempotencia: pagos duplicados (mismo hash) se rechazan.
-- API Keys por plataforma + firma de payload opcional.
-- Rate limiting por cliente B2B.
-- ZK Proofs para privacidad de atributos sensibles.
+- Validación de esquemas con Zod en todos los endpoints.
+- Manejo centralizado de errores con middleware dedicado.
+- Estructura de respuesta consistente con success/error.
+- Tipos TypeScript estrictos para type safety.
+- Prisma ORM para queries seguras y prevención de SQL injection.
 
 ---
 
@@ -125,18 +135,18 @@ Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% �
 
 ### Ventajas
 
-- Reducción de colateral → Más eficiencia de capital.
-- Reputación portable cross-protocol → Network effects.
-- Privacidad con ZK → Cumplimiento sin fuga de datos.
-- Fácil integración → API-first / webhooks.
+- Sistema de scoring transparente y auditable.
+- API REST simple y bien documentada.
+- Actualización dinámica de reputación basada en comportamiento.
+- Flexibilidad para prestamistas (perfiles personalizados).
+- Arquitectura modular preparada para extensiones futuras.
 
-### Desafíos
+### Desafíos Futuros
 
-- Adopción inicial (confianza en el modelo).
-- Sybil / identidades múltiples → Mitigar con KYC opcional + análisis de grafos.
-- Manipulación del score → Ponderaciones + detección de patrones.
-- Cold start usuarios nuevos → Score inicial on-chain (antigüedad, balance, actividad).
-- Regulación multinacional → Modular compliance.
+- Integración con datos on-chain reales.
+- Prevención de manipulación y ataques Sybil.
+- Escalabilidad para múltiples blockchains.
+- Cumplimiento regulatorio en diferentes jurisdicciones.
 
 ---
 
@@ -154,12 +164,14 @@ Ponderaciones base sugeridas: Pagos 40% · Utilización 30% · Antigüedad 15% �
 
 **✅ Completado:**
 
-1. API REST funcional con todos los endpoints core
-2. Base de datos modelada con Prisma (User, Lender, Request, Payment)
-3. Servicios de scoring, perfiles y pagos implementados
-4. Documentación Swagger completa y funcional
-5. Validaciones con Zod schemas
-6. Middleware de manejo de errores
+1. API REST completa con 6 endpoints funcionales
+2. Base de datos MySQL con 4 modelos (User, Lender, Request, Payment)
+3. Sistema de scoring con 5 variables y actualización dinámica
+4. Clasificación automática en tiers A/B/C
+5. Documentación Swagger interactiva completa
+6. Validaciones Zod y middleware de errores
+7. Configuración de prestamistas con perfiles personalizados
+8. Evaluación de elegibilidad automática
 
 **🚧 En Desarrollo:**
 
@@ -199,12 +211,6 @@ Respuesta:
   "limiteActualizado": 10500
 }
 ```
-
----
-
-## Ejemplo de Regla ZK (Conceptual)
-
-Usuario genera prueba de que `score >= 700` sin revelar valor exacto; protocolo verifica con `POST /zk/validar-prueba` y habilita mejores términos.
 
 ---
 
@@ -280,6 +286,28 @@ Usuario genera prueba de que `score >= 700` sin revelar valor exacto; protocolo 
 6. **Acceder a la API:**
    - API: http://localhost:3000/api
    - Swagger UI: http://localhost:3000/api-docs
+
+### Inicio Rápido
+
+```bash
+# Clonar e instalar
+git clone https://github.com/Zcorehub/ZCore-dev.git
+cd ZCore-dev/Server
+npm install
+
+# Configurar MySQL y variables de entorno
+mysql -u root -p -e "CREATE DATABASE zcore;"
+cp .env.example .env
+# Editar .env con tus credenciales MySQL
+
+# Inicializar base de datos y correr
+npx prisma generate
+npm run prisma:migrate -- --name init
+npm run dev
+
+# Probar endpoints en Swagger UI
+# http://localhost:3000/api-docs
+```
 
 ### Scripts Disponibles
 
