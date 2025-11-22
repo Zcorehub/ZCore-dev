@@ -2,14 +2,6 @@ import { z } from "zod";
 
 export const RegisterSchema = z.object({
   walletAddress: z.string().min(10, "Invalid wallet address"),
-  questionnaire: z.object({
-    walletAge: z.number().optional(),
-    averageBalance: z.number().optional(),
-    transactionCount: z.number().optional(),
-    defiInteractions: z.number().optional(),
-    monthlyIncome: z.number().optional(),
-    loanPurpose: z.string().optional(),
-  }),
 });
 
 export const LoginSchema = z.object({

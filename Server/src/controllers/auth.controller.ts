@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prisma } from "../config/database";
 import {
   assignProfileTier,
-  calculateEnhancedScore,
+  calculateStellarOnlyScore,
 } from "../services/scoring.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
@@ -18,7 +18,10 @@ import { LoginRequest, RegisterRequest } from "../types";
  * /api/auth/register:
  *   post:
  *     tags: [Auth]
- *     summary: Registra usuario y genera score inicial (simulado)
+ *     summary: Registra usuario usando solo wallet de Stellar
+ *     description: |
+ *       Registra un nuevo usuario calculando el score únicamente desde datos verificados de Stellar Horizon API.
+ *       Score máximo: 350 puntos basados en actividad on-chain.
  *     requestBody:
  *       required: true
  *       content:
@@ -27,42 +30,11 @@ import { LoginRequest, RegisterRequest } from "../types";
  *             type: object
  *             required:
  *               - walletAddress
- *               - questionnaire
  *             properties:
  *               walletAddress:
  *                 type: string
- *                 description: Dirección de wallet del usuario
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
- *               questionnaire:
- *                 type: object
- *                 properties:
- *                   walletAge:
- *                     type: number
- *                     description: Edad de la wallet en meses
- *                     example: 12
- *                   averageBalance:
- *                     type: number
- *                     description: Balance promedio
- *                     example: 1000.50
- *                   transactionCount:
- *                     type: number
- *                     description: Número de transacciones
- *                     example: 25
- *                   defiInteractions:
- *                     type: number
- *                     description: Interacciones DeFi
- *                     example: 5
- *                   monthlyIncome:
- *                     type: number
- *                     description: Ingreso mensual estimado
- *                     example: 5000
- *                   loanPurpose:
- *                     type: string
- *                     description: Propósito del préstamo
- *                     example: "business"
- *                   note:
- *                     type: string
- *                     description: "El sistema también obtendrá datos automáticamente de Stellar Horizon API"
+ *                 description: Dirección válida de wallet Stellar
+ *                 example: "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
  *     responses:
  *       201:
  *         description: Usuario registrado exitosamente
@@ -76,47 +48,61 @@ import { LoginRequest, RegisterRequest } from "../types";
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "User registered with Stellar integration"
+ *                   example: "User registered successfully"
  *                 data:
  *                   type: object
  *                   properties:
- *                     profileTier:
- *                       type: string
- *                       example: "B"
  *                     score:
  *                       type: number
- *                       example: 650
- *                     stellarIntegration:
- *                       type: object
- *                       properties:
- *                         isValid:
- *                           type: boolean
- *                           example: true
- *                         walletAge:
- *                           type: number
- *                           example: 120
- *                         totalTransactions:
- *                           type: number
- *                           example: 45
- *                         firstTransactionDate:
- *                           type: string
- *                           example: "2024-07-20T15:08:25Z"
- *                     scoringBreakdown:
- *                       type: object
- *                       properties:
- *                         questionnaireScore:
- *                           type: number
- *                           example: 450
- *                         stellarScore:
- *                           type: number
- *                           example: 200
- *                         finalScore:
- *                           type: number
- *                           example: 650
+ *                       example: 280
+ *                       description: "Score calculado desde datos de Stellar (máx 350)"
  *       200:
  *         description: Usuario ya existe
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User already registered"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     score:
+ *                       type: number
+ *                       example: 280
  *       400:
- *         description: Error de validación o wallet no encontrada en Stellar
+ *         description: Wallet inválida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid Stellar wallet address"
+ *                 message:
+ *                   type: string
+ *                   example: "The provided wallet address does not exist on Stellar network"
+ *                 details:
+ *                   type: object
+ *                   properties:
+ *                     walletAddress:
+ *                       type: string
+ *                       example: "INVALID123WALLET456"
+ *                     stellarNetwork:
+ *                       type: string
+ *                       example: "mainnet"
+ *                     suggestion:
+ *                       type: string
+ *                       example: "Please verify your Stellar wallet address and try again"
  */
 export const registerUser = async (
   req: Request,
@@ -124,57 +110,56 @@ export const registerUser = async (
   next: NextFunction
 ) => {
   try {
-    const { walletAddress, questionnaire } = req.body as RegisterRequest;
+    const { walletAddress } = req.body as RegisterRequest;
 
+    // Verificar si el usuario ya existe
     const existing = await prisma.user.findUnique({ where: { walletAddress } });
     if (existing) {
       return res.status(200).json({
         success: true,
         message: "User already registered",
         data: {
-          profileTier: existing.profileTier,
           score: existing.score,
         },
       });
     }
 
-    // Usar scoring mejorado con integración de Stellar
-    const scoringResult = await calculateEnhancedScore(
-      questionnaire,
-      walletAddress
-    );
-    const { score, stellarData, breakdown } = scoringResult;
+    // Obtener score únicamente desde Stellar
+    const scoringResult = await calculateStellarOnlyScore(walletAddress);
+    const { score, stellarData } = scoringResult;
+
+    // Validar que la wallet existe en Stellar
+    if (!stellarData.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Stellar wallet address",
+        message:
+          "The provided wallet address does not exist on Stellar network",
+        details: {
+          walletAddress,
+          stellarNetwork: "mainnet",
+          suggestion: "Please verify your Stellar wallet address and try again",
+        },
+      });
+    }
+
     const profileTier = assignProfileTier(score);
 
-    // Guardar datos extendidos en el cuestionario
-    const extendedQuestionnaire = {
-      ...questionnaire,
-      stellarData,
-      scoringBreakdown: breakdown,
-    };
-
+    // Crear usuario con datos mínimos
     await prisma.user.create({
       data: {
         walletAddress,
         score,
         profileTier,
-        questionnaire: extendedQuestionnaire as any,
+        questionnaire: stellarData as any, // Almacenar solo datos de Stellar
       },
     });
 
     return res.status(201).json({
       success: true,
-      message: "User registered with Stellar integration",
+      message: "User registered successfully",
       data: {
-        profileTier,
         score,
-        stellarIntegration: {
-          isValid: stellarData.isValid,
-          walletAge: stellarData.walletAge,
-          totalTransactions: stellarData.totalTransactions,
-          firstTransactionDate: stellarData.firstTransactionDate,
-        },
-        scoringBreakdown: breakdown,
       },
     });
   } catch (error) {
@@ -187,7 +172,8 @@ export const registerUser = async (
  * /api/auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Autenticación simulada basada en wallet
+ *     summary: Autenticación basada en wallet
+ *     description: Autentica usuario y retorna su score actual
  *     requestBody:
  *       required: true
  *       content:
@@ -200,7 +186,7 @@ export const registerUser = async (
  *               walletAddress:
  *                 type: string
  *                 description: Dirección de wallet del usuario
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *                 example: "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
  *     responses:
  *       200:
  *         description: Login exitoso
@@ -215,17 +201,23 @@ export const registerUser = async (
  *                 data:
  *                   type: object
  *                   properties:
- *                     walletAddress:
- *                       type: string
- *                       example: "0x1234567890abcdef1234567890abcdef12345678"
  *                     score:
  *                       type: number
- *                       example: 650
- *                     profileTier:
- *                       type: string
- *                       example: "B"
+ *                       example: 280
+ *                       description: "Score actual del usuario"
  *       404:
  *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "User not found"
  */
 export const loginUser = async (
   req: Request,
@@ -243,9 +235,7 @@ export const loginUser = async (
     return res.status(200).json({
       success: true,
       data: {
-        walletAddress: user.walletAddress,
         score: user.score,
-        profileTier: user.profileTier,
       },
     });
   } catch (error) {

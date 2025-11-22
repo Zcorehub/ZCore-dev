@@ -2,7 +2,7 @@
 
 ## Resumen Ejecutivo
 
-ZCore utiliza un sistema de scoring crediticio adaptado para Web3 que evalúa la reputación financiera on-chain de usuarios mediante análisis de comportamiento de wallet y cuestionario auto-reportado. El score resultante (300-850, similar a FICO) determina la elegibilidad para préstamos sub-colateralizados y las condiciones ofrecidas.
+ZCore utiliza un sistema de scoring crediticio 100% on-chain que evalúa la reputación financiera de usuarios mediante análisis automatizado de comportamiento de wallet en Stellar. El score resultante (0-350 puntos) se calcula únicamente desde datos verificados de Horizon API, eliminando la dependencia de información auto-reportada.
 
 ---
 
@@ -10,45 +10,85 @@ ZCore utiliza un sistema de scoring crediticio adaptado para Web3 que evalúa la
 
 ### Componentes Principales
 
-1. **Calculador de Score Inicial** - Evalúa datos del cuestionario
-2. **Asignador de Perfiles** - Clasifica usuarios en tiers A/B/C
-3. **Actualizador Dinámico** - Modifica score basado en comportamiento de pago
-4. **Evaluador de Elegibilidad** - Determina aprobación y límites
+1. **Extractor de Datos Stellar** - Obtiene información verificada de Horizon API
+2. **Calculador de Score On-Chain** - Evalúa actividad y comportamiento de wallet
+3. **Asignador de Perfiles** - Clasifica usuarios en tiers A/B/C
+4. **Actualizador Dinámico** - Modifica score basado en comportamiento de pago
+5. **Evaluador de Elegibilidad** - Determina aprobación y límites
 
 ---
 
-## Cálculo del Score Inicial
+## Cálculo del Score Stellar-Only (Máximo 350 Puntos)
 
-### Variables de Entrada (Cuestionario)
+### Datos Extraídos Automáticamente de Stellar Horizon API
 
-| Variable           | Tipo   | Peso   | Descripción                          | Rango Típico                 |
-| ------------------ | ------ | ------ | ------------------------------------ | ---------------------------- |
-| `walletAge`        | number | 0.2    | Edad de la wallet en meses           | 0-60+                        |
-| `averageBalance`   | number | 0.0001 | Balance promedio histórico           | 0-100000+                    |
-| `transactionCount` | number | 0.1    | Número total de transacciones        | 0-1000+                      |
-| `defiInteractions` | number | 5.0    | Interacciones con protocolos DeFi    | 0-50+                        |
-| `monthlyIncome`    | number | 0.0005 | Ingreso mensual declarado            | 0-50000+                     |
-| `loanPurpose`      | string | 0.0    | Propósito del préstamo (cualitativo) | "business", "personal", etc. |
+| Componente | Peso Máx | Fuente de Datos | Cálculo |
+|------------|----------|-----------------|----------|
+| **Edad de Wallet** | 80 pts | Primera transacción encontrada | `Math.min((walletAge / 365) * 40, 80)` |
+| **Actividad Transaccional** | 70 pts | Total de transacciones | `Math.min(totalTransactions * 0.4, 70)` |
+| **Tasa de Éxito** | 50 pts | Transacciones exitosas vs total | `(successfulTx / totalTx) * 50` |
+| **Balance XLM** | 60 pts | Balance actual asset nativo | `Math.min(log10(balance + 1) * 15, 60)` |
+| **Diversidad de Activos** | 50 pts | Número de trustlines | `Math.min(trustlineCount * 10, 50)` |
+| **Operaciones Activas** | 40 pts | Operaciones realizadas | `Math.min(operationsCount * 0.25, 40)` |
+| **Total Máximo** | **350** | **Stellar Network** | **Verificado on-chain** |
 
 ### Fórmula de Cálculo
 
 ```javascript
-const normalized =
-  walletAge * 0.2 +
-  averageBalance * 0.0001 +
-  transactionCount * 0.1 +
-  defiInteractions * 5 +
-  monthlyIncome * 0.0005;
-
-const rawScore = SCORE_MIN(300) + normalized;
-const finalScore = Math.min(Math.max(Math.round(rawScore), 300), 850);
+const calculateStellarScore = (stellarData) => {
+  if (!stellarData.isValid) return 0;
+  
+  // 1. Edad de wallet (máx 80 pts)
+  const ageScore = Math.min((stellarData.walletAge / 365) * 40, 80);
+  
+  // 2. Actividad transaccional (máx 70 pts)
+  const txScore = Math.min(stellarData.totalTransactions * 0.4, 70);
+  
+  // 3. Tasa de éxito (máx 50 pts)
+  const successRate = stellarData.successfulTransactions / stellarData.totalTransactions;
+  const successScore = successRate * 50;
+  
+  // 4. Balance XLM (máx 60 pts)
+  const balanceScore = Math.min(Math.log10(stellarData.averageBalance + 1) * 15, 60);
+  
+  // 5. Diversidad de activos (máx 50 pts)
+  const trustlineScore = Math.min(stellarData.trustlineCount * 10, 50);
+  
+  // 6. Operaciones activas (máx 40 pts)
+  const opsScore = Math.min(stellarData.operationsCount * 0.25, 40);
+  
+  return Math.round(ageScore + txScore + successScore + balanceScore + trustlineScore + opsScore);
+};
 ```
 
-### Ejemplos de Scoring
+### Ejemplos de Scoring Stellar
 
-**Usuario Principiante:**
+**Wallet Principiante (Score: 45):**
+- Edad: 30 días → (30/365) * 40 = 3.3 pts
+- Transacciones: 8 → 8 * 0.4 = 3.2 pts
+- Tasa éxito: 100% → 1.0 * 50 = 50 pts (limitado a datos disponibles)
+- Balance: 50 XLM → log10(51) * 15 = 25.5 pts
+- Trustlines: 1 → 1 * 10 = 10 pts
+- Operaciones: 12 → 12 * 0.25 = 3 pts
+- **Score Total:** 45 puntos **(Tier C)**
 
-- walletAge: 3 meses → 3 \* 0.2 = 0.6
+**Wallet Intermedia (Score: 180):**
+- Edad: 8 meses → (240/365) * 40 = 26.3 pts
+- Transacciones: 85 → 85 * 0.4 = 34 pts
+- Tasa éxito: 96% → 0.96 * 50 = 48 pts
+- Balance: 2,500 XLM → log10(2501) * 15 = 51.8 pts
+- Trustlines: 3 → 3 * 10 = 30 pts
+- Operaciones: 120 → 120 * 0.25 = 30 pts
+- **Score Total:** 180 puntos **(Tier C)**
+
+**Wallet Avanzada (Score: 290):**
+- Edad: 2.5 años → (912/365) * 40 = 80 pts (máximo)
+- Transacciones: 175 → 175 * 0.4 = 70 pts (máximo)
+- Tasa éxito: 98% → 0.98 * 50 = 49 pts
+- Balance: 15,000 XLM → log10(15001) * 15 = 60 pts (máximo)
+- Trustlines: 5 → 5 * 10 = 50 pts (máximo)
+- Operaciones: 200+ → 200 * 0.25 = 40 pts (máximo)
+- **Score Total:** 290 puntos **(Tier B)**
 - averageBalance: $500 → 500 \* 0.0001 = 0.05
 - transactionCount: 10 → 10 \* 0.1 = 1.0
 - defiInteractions: 2 → 2 \* 5 = 10.0
@@ -86,21 +126,23 @@ const finalScore = Math.min(Math.max(Math.round(rawScore), 300), 850);
 
 ## Sistema de Perfiles de Riesgo
 
-### Clasificación por Tiers
+### Clasificación por Tiers (Score 0-350)
 
 | Tier  | Score Mínimo | Características                                 | Límite Típico  | Tasa Típica |
 | ----- | ------------ | ----------------------------------------------- | -------------- | ----------- |
-| **A** | 750+         | Usuarios premium con historial sólido           | $10,000+       | 8-12%       |
-| **B** | 650-749      | Usuarios experimentados con buen comportamiento | $5,000-$10,000 | 12-18%      |
-| **C** | 300-649      | Usuarios nuevos o con historial limitado        | $1,000-$5,000  | 18-25%      |
+| **A** | 280+         | Wallets premium con historial sólido on-chain           | $10,000+       | 8-12%       |
+| **B** | 200-279      | Wallets experimentadas con buen comportamiento | $5,000-$10,000 | 12-18%      |
+| **C** | 50-199       | Wallets nuevas o con historial limitado        | $1,000-$5,000  | 18-25%      |
+| **REJECTED** | 0-49   | Wallets inactivas o inexistentes | $0 | N/A |
 
 ### Lógica de Asignación
 
 ```javascript
 export const assignProfileTier = (score: number) => {
-  if (score >= 750) return "A";
-  if (score >= 650) return "B";
-  return "C";
+  if (score >= 280) return "A";
+  if (score >= 200) return "B";
+  if (score >= 50) return "C";
+  return "REJECTED";
 };
 ```
 

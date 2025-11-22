@@ -25,25 +25,27 @@
 │         (Aave, Compound, Custom)                │
 └────────────┬────────────────────────────────────┘
              │
-             │ Consulta API
+             │ Consulta API (solo wallet)
              ▼
 ┌─────────────────────────────────────────────────┐
 │                   ZCore API                     │
 │  ┌──────────────────────────────────────────┐  │
-│  │  • Motor de Scoring Dinámico             │  │
+│  │  • Integración Stellar Horizon API       │  │
+│  │  • Motor de Scoring On-Chain (0-350)     │  │
 │  │  • Sistema de Reputación Verificable     │  │
-│  │  • Registro de Historial Crediticio      │  │
-│  │  • Validación con ZK Proofs              │  │
+│  │  │  Registro de Historial Crediticio      │  │
+│  │  • Validación Automática de Wallets      │  │
 │  │  • Cálculo de Límites de Crédito         │  │
 │  │  • Track de Pagos/Defaults               │  │
-│  │  • Análisis de Riesgo                    │  │
+│  │  • Análisis de Riesgo Blockchain         │  │
 │  └──────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────┘
              │
-             │ Datos del usuario
+             │ Solo dirección de wallet
              ▼
 ┌─────────────────────────────────────────────────┐
 │         Prestatario (Usuario Final)             │
+│              Wallet Stellar                     │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -51,54 +53,56 @@
 
 ## Servicios Clave de ZCore
 
-### 1. **Scoring Service**
+### 1. **Scoring Service On-Chain**
 
-Evalúa la creditworthiness del usuario basado en:
+Evalúa la creditworthiness del usuario basado en datos 100% verificados de Stellar:
 
-- Historial de pagos
-- Ratio de utilización de crédito
-- Antigüedad de la cuenta
-- Diversidad de operaciones
-- Comportamiento en múltiples plataformas
+- **Edad de wallet** (80 pts máx) - Primera transacción verificada
+- **Actividad transaccional** (70 pts máx) - Historial de uso real
+- **Tasa de éxito** (50 pts máx) - Transacciones exitosas vs fallidas
+- **Balance XLM** (60 pts máx) - Solvencia actual verificada
+- **Diversidad de activos** (50 pts máx) - Trustlines y DeFi activity
+- **Operaciones activas** (40 pts máx) - Uso activo de la red
+
+**Score Total: 0-350 puntos** basado completamente en datos verificables de blockchain.
 
 ### 2. **Credit Service**
 
-Calcula y sugiere límites de crédito para cada usuario:
+Calcula y sugiere límites de crédito para cada usuario basado en score on-chain:
 
-- Límite máximo recomendado
-- Nivel de riesgo
-- Condiciones sugeridas
+- **Tier A (280+ pts)**: Límite máximo $10,000+, Tasa 8-12%
+- **Tier B (200-279 pts)**: Límite $5,000-$10,000, Tasa 12-18%
+- **Tier C (50-199 pts)**: Límite $1,000-$5,000, Tasa 18-25%
+- **Rejected (0-49 pts)**: Sin acceso a crédito
 
 ### 3. **Transaction Service**
 
-Registra todas las operaciones:
+Registra todas las operaciones con wallet verification:
 
-- Solicitudes de préstamo
-- Desembolsos
-- Pagos parciales/totales
-- Defaults
+- Solicitudes de préstamo con wallet Stellar
+- Desembolsos a addresses verificadas
+- Pagos parciales/totales rastreables
+- Defaults con impacto en score
 
 ### 4. **Payment Service**
 
-Track del comportamiento de pago:
+Track del comportamiento de pago actualiza score dinámicamente:
 
-- Pagos a tiempo
-- Pagos adelantados
-- Pagos tardíos
-- Incumplimientos
+- Pagos a tiempo: +10 puntos
+- Defaults: -30 puntos
+- Score ajustado en tiempo real
+- Historial inmutable en blockchain
 
-### 5. **Reputation Service**
+### 5. **Stellar Integration Service**
 
-Score dinámico que se ajusta en tiempo real:
+Servicio core para validación y extracción de datos:
 
-- Pago a tiempo: +10 puntos
-- Pago adelantado: +15 puntos
-- Pago tarde: -20 puntos
-- No pago: -30 puntos
-- Bajo uso del límite: +5 puntos
-- Uso constante del 100%: -5 puntos
+- **Horizon API Integration**: Conexión directa con Stellar
+- **Wallet Validation**: Verificación de existencia on-chain
+- **Data Extraction**: Análisis automático de transacciones
+- **Real-time Updates**: Monitoreo continuo de actividad
 
-### 6. **ZK Proof Service**
+### 6. **ZK Proof Service** (Futuro)
 
 Validaciones con privacidad:
 
