@@ -1,13 +1,3 @@
-export interface QuestionnaireData {
-  walletAge?: number;
-  averageBalance?: number;
-  transactionCount?: number;
-  defiInteractions?: number;
-  monthlyIncome?: number;
-  loanPurpose?: string;
-  [key: string]: number | string | undefined | object;
-}
-
 export interface StellarWalletData {
   walletAge: number;
   totalTransactions: number;
@@ -19,13 +9,6 @@ export interface StellarWalletData {
   isValid: boolean;
   firstTransactionDate: string | null;
   [key: string]: number | boolean | string | null;
-}
-
-export interface ScoringBreakdown {
-  questionnaireScore: number;
-  stellarScore: number;
-  finalScore: number;
-  [key: string]: number;
 }
 
 export interface LenderProfile {
@@ -61,6 +44,30 @@ export interface PaymentReport {
 export interface ProfileDefinition {
   apiKey: string;
   profiles: LenderProfile[];
+}
+
+export type CreditEventType =
+  | "escrow_completed"
+  | "loan_repaid"
+  | "tanda_round_paid"
+  | "tanda_cycle_completed";
+
+export interface CreditEventPayload {
+  apiKey: string;
+  eventType: CreditEventType;
+  walletAddress: string;
+  amount: number;
+  currency?: string;
+  txHash: string;
+  counterpartyWallet?: string;
+  timestamp: string;
+}
+
+export interface PlatformRegisterPayload {
+  adminKey: string;
+  platformId: string;
+  name: string;
+  webhookUrl?: string;
 }
 
 export interface ApiResponse<T = unknown> {
