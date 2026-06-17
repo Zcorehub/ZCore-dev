@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { prisma } from "../config/database";
 import {
   assignProfileTier,
-  calculateStellarOnlyScore,
+  calculateStellarBase,
 } from "../services/scoring.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
@@ -124,8 +124,8 @@ export const registerUser = async (
       });
     }
 
-    // Obtener score únicamente desde Stellar
-    const scoringResult = await calculateStellarOnlyScore(walletAddress);
+    // Calculate score from on-chain Stellar data only (0-150 pts base)
+    const scoringResult = await calculateStellarBase(walletAddress);
     const { score, stellarData } = scoringResult;
 
     // Validar que la wallet existe en Stellar
@@ -145,13 +145,12 @@ export const registerUser = async (
 
     const profileTier = assignProfileTier(score);
 
-    // Crear usuario con datos mínimos
     await prisma.user.create({
       data: {
         walletAddress,
         score,
         profileTier,
-        questionnaire: stellarData as any, // Almacenar solo datos de Stellar
+        stellarData: stellarData as any,
       },
     });
 
