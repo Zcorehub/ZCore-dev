@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Server
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: Server
+        run: npx prisma generate
+
+      - name: Build TypeScript
+        working-directory: Server
+        run: npm run build
+
+  lint-frontend:
+    name: Frontend Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Front/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Front
+        run: npm ci
+
+      - name: Type check
+        working-directory: Front
+        run: npx tsc --noEmit
