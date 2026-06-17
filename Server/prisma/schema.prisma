@@ -8,28 +8,61 @@ datasource db {
 }
 
 model User {
-  id              String        @id @default(uuid())
-  walletAddress   String        @unique
-  score           Int           @default(500)
-  profileTier     String        @default("C")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  questionnaire   Json?
-  requests        Request[]
-  payments        Payment[]
+  id            String        @id @default(uuid())
+  walletAddress String        @unique
+  score         Int           @default(0)
+  profileTier   String        @default("REJECTED")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  stellarData   Json?
+  requests      Request[]
+  payments      Payment[]
+  creditEvents  CreditEvent[]
 
   @@index([walletAddress])
 }
 
-model Lender {
-  id         String   @id @default(uuid())
+model Platform {
+  id         String        @id
   name       String
-  apiKey     String   @unique
-  profiles   Json
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  requests   Request[]
-  payments   Payment[]
+  apiKey     String        @unique
+  webhookUrl String?
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  events     CreditEvent[]
+
+  @@index([apiKey])
+}
+
+model CreditEvent {
+  id                 String   @id @default(uuid())
+  userId             String
+  platformId         String
+  eventType          String
+  amount             Float
+  currency           String   @default("USDC")
+  txHash             String   @unique
+  counterpartyWallet String?
+  scoreImpact        Int
+  verifiedAt         DateTime
+  createdAt          DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id])
+  platform           Platform @relation(fields: [platformId], references: [id])
+
+  @@index([userId, platformId])
+  @@index([userId, eventType])
+  @@index([txHash])
+}
+
+model Lender {
+  id        String    @id @default(uuid())
+  name      String
+  apiKey    String    @unique
+  profiles  Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  requests  Request[]
+  payments  Payment[]
 
   @@index([apiKey])
 }

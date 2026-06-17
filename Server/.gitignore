@@ -23,5 +23,5 @@ build/
 .DS_Store
 Thumbs.db
 
-# Prisma
-prisma/migrations/
+# Prisma — generated client only, migrations must be committed
+node_modules/.prisma/
