@@ -126,8 +126,178 @@ export const requestScoring = async (
 
 /**
  * @swagger
- * /api/user/{wallet}/profile:
+ * /api/user/{wallet}/score:
  *   get:
+ *     tags: [Users]
+ *     summary: Get a user's credit score with breakdown (for lenders)
+ *     parameters:
+ *       - in: path
+ *         name: wallet
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+ *     responses:
+ *       200:
+ *         description: Score and breakdown retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     walletAddress:
+ *                       type: string
+ *                     score:
+ *                       type: number
+ *                       example: 387
+ *                     tier:
+ *                       type: string
+ *                       example: "B"
+ *                     breakdown:
+ *                       type: object
+ *                       properties:
+ *                         stellarBase:
+ *                           type: number
+ *                         eventsScore:
+ *                           type: number
+ *                         totalEvents:
+ *                           type: number
+ *                         platforms:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                     lastUpdated:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: User not found
+ */
+export const getScore = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { wallet } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { walletAddress: wallet },
+      include: {
+        creditEvents: {
+          select: { platformId: true, scoreImpact: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    const eventsScore = user.creditEvents.reduce(
+      (sum, e) => sum + e.scoreImpact,
+      0
+    );
+    const stellarBase = Math.max(0, user.score - eventsScore);
+    const platforms = [...new Set(user.creditEvents.map((e) => e.platformId))];
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        walletAddress: wallet,
+        score: user.score,
+        tier: user.profileTier,
+        breakdown: {
+          stellarBase,
+          eventsScore,
+          totalEvents: user.creditEvents.length,
+          platforms,
+        },
+        lastUpdated: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/user/{wallet}/history:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get a user's credit event history
+ *     parameters:
+ *       - in: path
+ *         name: wallet
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+ *     responses:
+ *       200:
+ *         description: Credit event history retrieved
+ *       404:
+ *         description: User not found
+ */
+export const getCreditHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { wallet } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { walletAddress: wallet },
+      include: {
+        creditEvents: {
+          include: { platform: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    const events = user.creditEvents.map((e) => ({
+      eventId: e.id,
+      platform: e.platform.name,
+      eventType: e.eventType,
+      amount: e.amount,
+      currency: e.currency,
+      scoreImpact: e.scoreImpact,
+      txHash: e.txHash,
+      date: e.createdAt.toISOString().split("T")[0],
+    }));
+
+    const totalPositive = events
+      .filter((e) => e.scoreImpact > 0)
+      .reduce((sum, e) => sum + e.scoreImpact, 0);
+    const totalNegative = events
+      .filter((e) => e.scoreImpact < 0)
+      .reduce((sum, e) => sum + e.scoreImpact, 0);
+
+    return res.status(200).json({
+      success: true,
+      data: { events, totalPositive, totalNegative },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/user/{wallet}/profile:
  *     tags: [Users]
  *     summary: Obtiene perfil asignado
  *     parameters:
