@@ -1,0 +1,219 @@
+import { NextFunction, Request, Response } from "express";
+import { prisma } from "../config/database";
+import { CreditEventPayload, CreditEventType } from "../types";
+import {
+  calculateEventImpact,
+  applyCounterpartyDecay,
+  assignProfileTier,
+} from "../services/scoring.service";
+import { verifyTransaction } from "../services/stellar.service";
+
+/**
+ * @swagger
+ * tags:
+ *   name: Events
+ *   description: Credit event reporting from partner platforms
+ */
+
+/**
+ * @swagger
+ * /api/events/report:
+ *   post:
+ *     tags: [Events]
+ *     summary: Report a verified credit event from a partner platform
+ *     description: |
+ *       Called by registered partner platforms (Trustless Work, Blend Protocol, Vaquita)
+ *       when a credit-relevant payment event occurs. ZCore verifies the txHash on-chain
+ *       before updating the user's score.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - apiKey
+ *               - eventType
+ *               - walletAddress
+ *               - amount
+ *               - txHash
+ *               - timestamp
+ *             properties:
+ *               apiKey:
+ *                 type: string
+ *                 description: Platform API key issued by ZCore admin
+ *                 example: "trustless_work_abc123..."
+ *               eventType:
+ *                 type: string
+ *                 enum: [escrow_completed, loan_repaid, tanda_round_paid, tanda_cycle_completed]
+ *                 example: "escrow_completed"
+ *               walletAddress:
+ *                 type: string
+ *                 description: Stellar wallet of the user whose score will be updated
+ *                 example: "GAYR3DYYONOZMFQT5KA7VO4LHMDWEDMVOFXONGEPPLQAL5ZWQQXYAJUP"
+ *               amount:
+ *                 type: number
+ *                 description: Amount in USDC (or equivalent)
+ *                 example: 500
+ *               currency:
+ *                 type: string
+ *                 default: "USDC"
+ *                 example: "USDC"
+ *               txHash:
+ *                 type: string
+ *                 description: Stellar transaction hash to verify on-chain
+ *                 example: "abc123stellartxhash..."
+ *               counterpartyWallet:
+ *                 type: string
+ *                 description: Wallet of the other party (used for anti-Sybil counterparty decay)
+ *                 example: "GDEFGHIJK..."
+ *               timestamp:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2026-06-17T10:00:00Z"
+ *     responses:
+ *       200:
+ *         description: Event processed and score updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     eventId:
+ *                       type: string
+ *                       example: "evt_uuid"
+ *                     scoreImpact:
+ *                       type: number
+ *                       example: 22
+ *                     newScore:
+ *                       type: number
+ *                       example: 187
+ *                     newTier:
+ *                       type: string
+ *                       example: "C"
+ *                     verified:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Transaction could not be verified on Stellar
+ *       401:
+ *         description: Invalid platform API key
+ *       404:
+ *         description: User not registered in ZCore
+ *       409:
+ *         description: Transaction already processed
+ */
+export const reportCreditEvent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const payload = req.body as CreditEventPayload;
+
+    // 1. Validate platform API key
+    const platform = await prisma.platform.findUnique({
+      where: { apiKey: payload.apiKey },
+    });
+    if (!platform || !platform.active) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid or inactive platform API key",
+      });
+    }
+
+    // 2. Find user (must register first)
+    const user = await prisma.user.findUnique({
+      where: { walletAddress: payload.walletAddress },
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found. The wallet must be registered in ZCore first.",
+      });
+    }
+
+    // 3. Check txHash uniqueness — prevents double-counting the same payment
+    const existing = await prisma.creditEvent.findUnique({
+      where: { txHash: payload.txHash },
+    });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: "This transaction has already been processed",
+      });
+    }
+
+    // 4. Verify txHash on Stellar Horizon
+    const txVerification = await verifyTransaction(payload.txHash);
+    if (!txVerification.valid || !txVerification.successful) {
+      return res.status(400).json({
+        success: false,
+        error: "Transaction could not be verified on Stellar network",
+        details: txVerification.error,
+      });
+    }
+
+    // 5. Calculate counterparty decay (anti-Sybil)
+    let decayFactor = 1.0;
+    if (payload.counterpartyWallet) {
+      const priorCount = await prisma.creditEvent.count({
+        where: {
+          userId: user.id,
+          counterpartyWallet: payload.counterpartyWallet,
+        },
+      });
+      decayFactor = applyCounterpartyDecay(priorCount + 1);
+    }
+
+    // 6. Calculate score impact
+    const scoreImpact = calculateEventImpact(
+      payload.eventType as CreditEventType,
+      payload.amount,
+      decayFactor
+    );
+
+    const newScore = Math.min(Math.max(user.score + scoreImpact, 0), 850);
+    const newTier = assignProfileTier(newScore);
+
+    // 7. Atomic write: create event + update user score
+    const [creditEvent] = await prisma.$transaction([
+      prisma.creditEvent.create({
+        data: {
+          userId: user.id,
+          platformId: platform.id,
+          eventType: payload.eventType,
+          amount: payload.amount,
+          currency: payload.currency ?? "USDC",
+          txHash: payload.txHash,
+          counterpartyWallet: payload.counterpartyWallet ?? null,
+          scoreImpact,
+          verifiedAt: new Date(),
+        },
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { score: newScore, profileTier: newTier },
+      }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        eventId: creditEvent.id,
+        scoreImpact,
+        newScore,
+        newTier,
+        verified: true,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
