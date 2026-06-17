@@ -1,436 +1,171 @@
-# Metodología de Scoring y Perfiles de Riesgo - ZCore
+# Metodología de Scoring - ZCore Model B
 
-## Resumen Ejecutivo
+## Resumen
 
-ZCore utiliza un sistema de scoring crediticio 100% on-chain que evalúa la reputación financiera de usuarios mediante análisis automatizado de comportamiento de wallet en Stellar. El score resultante (0-350 puntos) se calcula únicamente desde datos verificados de Horizon API, eliminando la dependencia de información auto-reportada.
+ZCore calcula un score 0-850 desde dos fuentes de datos verificables en Stellar:
 
----
+1. **Stellar Base (0-150)** — actividad on-chain del wallet, calculada vía Horizon API en el momento del registro.
+2. **Credit Events (0-700)** — eventos de pago verificados reportados por plataformas partner (Trustless Work, Blend Protocol, Vaquita).
 
-## Arquitectura del Sistema de Scoring
-
-### Componentes Principales
-
-1. **Extractor de Datos Stellar** - Obtiene información verificada de Horizon API
-2. **Calculador de Score On-Chain** - Evalúa actividad y comportamiento de wallet
-3. **Asignador de Perfiles** - Clasifica usuarios en tiers A/B/C
-4. **Actualizador Dinámico** - Modifica score basado en comportamiento de pago
-5. **Evaluador de Elegibilidad** - Determina aprobación y límites
+El score se almacena en la tabla `User.score` y se recalcula atómicamente cada vez que un partner reporta un evento verificado.
 
 ---
 
-## Cálculo del Score Stellar-Only (Máximo 350 Puntos)
+## Parte 1: Stellar Base (máximo 150 puntos)
 
-### Datos Extraídos Automáticamente de Stellar Horizon API
+Calculado por `calculateStellarBase()` en `scoring.service.ts` al registrar o hacer login.
 
-| Componente | Peso Máx | Fuente de Datos | Cálculo |
-|------------|----------|-----------------|----------|
-| **Edad de Wallet** | 80 pts | Primera transacción encontrada | `Math.min((walletAge / 365) * 40, 80)` |
-| **Actividad Transaccional** | 70 pts | Total de transacciones | `Math.min(totalTransactions * 0.4, 70)` |
-| **Tasa de Éxito** | 50 pts | Transacciones exitosas vs total | `(successfulTx / totalTx) * 50` |
-| **Balance XLM** | 60 pts | Balance actual asset nativo | `Math.min(log10(balance + 1) * 15, 60)` |
-| **Diversidad de Activos** | 50 pts | Número de trustlines | `Math.min(trustlineCount * 10, 50)` |
-| **Operaciones Activas** | 40 pts | Operaciones realizadas | `Math.min(operationsCount * 0.25, 40)` |
-| **Total Máximo** | **350** | **Stellar Network** | **Verificado on-chain** |
+| Componente | Máximo | Cálculo |
+|---|---|---|
+| Edad de wallet | 40 pts | `Math.min((walletAgeDays / 365) * 20, 40)` |
+| Actividad transaccional | 30 pts | `Math.min(totalTransactions * 0.2, 30)` |
+| Tasa de éxito | 20 pts | `(successfulTx / totalTx) * 20` |
+| Balance XLM | 30 pts | `Math.min(Math.log10(balance + 1) * 8, 30)` |
+| Diversidad de activos | 20 pts | `Math.min(trustlineCount * 5, 20)` |
+| Operaciones activas | 10 pts | `Math.min(operationsCount * 0.1, 10)` |
+| **Total** | **150** | |
 
-### Fórmula de Cálculo
+**Fuente:** Stellar Horizon API (`https://horizon.stellar.org` en mainnet, `https://horizon-testnet.stellar.org` en testnet).
 
-```javascript
-const calculateStellarScore = (stellarData) => {
-  if (!stellarData.isValid) return 0;
-  
-  // 1. Edad de wallet (máx 80 pts)
-  const ageScore = Math.min((stellarData.walletAge / 365) * 40, 80);
-  
-  // 2. Actividad transaccional (máx 70 pts)
-  const txScore = Math.min(stellarData.totalTransactions * 0.4, 70);
-  
-  // 3. Tasa de éxito (máx 50 pts)
-  const successRate = stellarData.successfulTransactions / stellarData.totalTransactions;
-  const successScore = successRate * 50;
-  
-  // 4. Balance XLM (máx 60 pts)
-  const balanceScore = Math.min(Math.log10(stellarData.averageBalance + 1) * 15, 60);
-  
-  // 5. Diversidad de activos (máx 50 pts)
-  const trustlineScore = Math.min(stellarData.trustlineCount * 10, 50);
-  
-  // 6. Operaciones activas (máx 40 pts)
-  const opsScore = Math.min(stellarData.operationsCount * 0.25, 40);
-  
-  return Math.round(ageScore + txScore + successScore + balanceScore + trustlineScore + opsScore);
-};
-```
-
-### Ejemplos de Scoring Stellar
-
-**Wallet Principiante (Score: 45):**
-- Edad: 30 días → (30/365) * 40 = 3.3 pts
-- Transacciones: 8 → 8 * 0.4 = 3.2 pts
-- Tasa éxito: 100% → 1.0 * 50 = 50 pts (limitado a datos disponibles)
-- Balance: 50 XLM → log10(51) * 15 = 25.5 pts
-- Trustlines: 1 → 1 * 10 = 10 pts
-- Operaciones: 12 → 12 * 0.25 = 3 pts
-- **Score Total:** 45 puntos **(Tier C)**
-
-**Wallet Intermedia (Score: 180):**
-- Edad: 8 meses → (240/365) * 40 = 26.3 pts
-- Transacciones: 85 → 85 * 0.4 = 34 pts
-- Tasa éxito: 96% → 0.96 * 50 = 48 pts
-- Balance: 2,500 XLM → log10(2501) * 15 = 51.8 pts
-- Trustlines: 3 → 3 * 10 = 30 pts
-- Operaciones: 120 → 120 * 0.25 = 30 pts
-- **Score Total:** 180 puntos **(Tier C)**
-
-**Wallet Avanzada (Score: 290):**
-- Edad: 2.5 años → (912/365) * 40 = 80 pts (máximo)
-- Transacciones: 175 → 175 * 0.4 = 70 pts (máximo)
-- Tasa éxito: 98% → 0.98 * 50 = 49 pts
-- Balance: 15,000 XLM → log10(15001) * 15 = 60 pts (máximo)
-- Trustlines: 5 → 5 * 10 = 50 pts (máximo)
-- Operaciones: 200+ → 200 * 0.25 = 40 pts (máximo)
-- **Score Total:** 290 puntos **(Tier B)**
-- averageBalance: $500 → 500 \* 0.0001 = 0.05
-- transactionCount: 10 → 10 \* 0.1 = 1.0
-- defiInteractions: 2 → 2 \* 5 = 10.0
-- monthlyIncome: $3000 → 3000 \* 0.0005 = 1.5
-- **Score Final:** 300 + 13.15 = **313 (Tier C)**
-
-**Usuario Intermedio:**
-
-- walletAge: 18 meses → 18 \* 0.2 = 3.6
-- averageBalance: $5000 → 5000 \* 0.0001 = 0.5
-- transactionCount: 150 → 150 \* 0.1 = 15.0
-- defiInteractions: 20 → 20 \* 5 = 100.0
-- monthlyIncome: $8000 → 8000 \* 0.0005 = 4.0
-- **Score Final:** 300 + 123.1 = **423 (Tier C)**
-
-**Usuario Avanzado:**
-
-- walletAge: 36 meses → 36 \* 0.2 = 7.2
-- averageBalance: $25000 → 25000 \* 0.0001 = 2.5
-- transactionCount: 800 → 800 \* 0.1 = 80.0
-- defiInteractions: 50 → 50 \* 5 = 250.0
-- monthlyIncome: $15000 → 15000 \* 0.0005 = 7.5
-- **Score Final:** 300 + 347.2 = **647 (Tier B)**
-
-**Usuario Premium:**
-
-- walletAge: 48 meses → 48 \* 0.2 = 9.6
-- averageBalance: $100000 → 100000 \* 0.0001 = 10.0
-- transactionCount: 1500 → 1500 \* 0.1 = 150.0
-- defiInteractions: 80 → 80 \* 5 = 400.0
-- monthlyIncome: $25000 → 25000 \* 0.0005 = 12.5
-- **Score Final:** 300 + 582.1 = **850** _(limitado)_ **(Tier A)**
+**Cuándo se calcula:** En `POST /api/auth/register`. En `POST /api/auth/login` se puede recalcular si el usuario ya existe.
 
 ---
 
-## Sistema de Perfiles de Riesgo
+## Parte 2: Credit Events (máximo ~700 puntos acumulables)
 
-### Clasificación por Tiers (Score 0-350)
+Cada evento reportado por una plataforma partner agrega puntos al score. El impacto depende del tipo de evento, el monto en USDC, y el factor de decay de contraparte.
 
-| Tier  | Score Mínimo | Características                                 | Límite Típico  | Tasa Típica |
-| ----- | ------------ | ----------------------------------------------- | -------------- | ----------- |
-| **A** | 280+         | Wallets premium con historial sólido on-chain           | $10,000+       | 8-12%       |
-| **B** | 200-279      | Wallets experimentadas con buen comportamiento | $5,000-$10,000 | 12-18%      |
-| **C** | 50-199       | Wallets nuevas o con historial limitado        | $1,000-$5,000  | 18-25%      |
-| **REJECTED** | 0-49   | Wallets inactivas o inexistentes | $0 | N/A |
+### Pesos por Tipo de Evento
 
-### Lógica de Asignación
-
-```javascript
-export const assignProfileTier = (score: number) => {
-  if (score >= 280) return "A";
-  if (score >= 200) return "B";
-  if (score >= 50) return "C";
-  return "REJECTED";
-};
-```
-
----
-
-## Actualización Dinámica del Score
-
-### Eventos que Modifican el Score
-
-| Evento              | Cambio en Score | Justificación                    |
-| ------------------- | --------------- | -------------------------------- |
-| **Pago puntual**    | +10 puntos      | Refuerza comportamiento positivo |
-| **Default/No pago** | -30 puntos      | Penaliza incumplimiento          |
-
-### Fórmula de Actualización
-
-```javascript
-export const updateScoreFromPayment = (score, status) => {
-  const delta = status === "paid" ? 10 : -30;
-  const updatedScore = Math.min(Math.max(score + delta, 300), 850);
-  return {
-    score: updatedScore,
-    profileTier: assignProfileTier(updatedScore),
-  };
-};
-```
-
-### Ejemplos de Evolución
-
-**Escenario de Mejora:**
-
-- Usuario inicia con score 620 (Tier C)
-- Realiza 5 pagos puntuales: 620 + (5 × 10) = 670 (Tier B)
-- Mejora condiciones automáticamente
-
-**Escenario de Deterioro:**
-
-- Usuario tiene score 720 (Tier B)
-- Defaultea 1 pago: 720 - 30 = 690 (mantiene Tier B)
-- Defaultea otro: 690 - 30 = 660 (mantiene Tier B)
-- Tercer default: 660 - 30 = 630 (baja a Tier C)
-
----
-
-## Proceso de Evaluación de Elegibilidad
-
-### Flujo de Evaluación
-
-```mermaid
-graph TD
-    A[Usuario solicita préstamo] --> B[Recuperar score actual]
-    B --> C[Obtener perfiles del prestamista]
-    C --> D[Ordenar perfiles por score descendente]
-    D --> E[Encontrar primer perfil elegible]
-    E --> F{Score >= minScore?}
-    F -->|Sí| G[Verificar monto solicitado]
-    F -->|No| H[Asignar Tier C con límite 0]
-    G --> I{Monto <= maxAmount?}
-    I -->|Sí| J[Aprobar solicitud]
-    I -->|No| K[Rechazar por límite]
-    J --> L[Crear registro de solicitud]
-    K --> L
-    H --> L
-```
-
-### Algoritmo de Matching
-
-```javascript
-export const evaluateEligibility = (score, profiles, requestedAmount) => {
-  // Ordenar perfiles de mayor a menor score requerido
-  const sortedProfiles = [...profiles].sort((a, b) => b.minScore - a.minScore);
-
-  // Buscar el primer perfil que el usuario califique
-  for (const profile of sortedProfiles) {
-    if (score >= profile.minScore) {
-      return {
-        profileAssigned: profile.tier,
-        maxAmount: profile.maxAmount,
-        eligible: requestedAmount <= profile.maxAmount,
-      };
-    }
-  }
-
-  // Si no califica para ningún perfil
-  return {
-    profileAssigned: "C",
-    maxAmount: 0,
-    eligible: false,
-  };
-};
-```
-
----
-
-## Configuración de Prestamistas
-
-### Ejemplo de Perfiles Típicos
-
-```json
-{
-  "apiKey": "lender_xyz_12345",
-  "name": "DeFi Lending Protocol",
-  "profiles": [
-    {
-      "tier": "A",
-      "minScore": 750,
-      "maxAmount": 50000,
-      "interestRate": 8.5
-    },
-    {
-      "tier": "B",
-      "minScore": 650,
-      "maxAmount": 15000,
-      "interestRate": 14.0
-    },
-    {
-      "tier": "C",
-      "minScore": 500,
-      "maxAmount": 3000,
-      "interestRate": 22.0
-    }
-  ]
+```typescript
+const EVENT_WEIGHTS = {
+  escrow_completed:      { base: 15, perUSDC: 0.005, maxPerEvent: 60  },
+  loan_repaid:           { base: 20, perUSDC: 0.008, maxPerEvent: 80  },
+  tanda_round_paid:      { base: 10, perUSDC: 0.003, maxPerEvent: 30  },
+  tanda_cycle_completed: { base: 40, perUSDC: 0.010, maxPerEvent: 100 },
 }
 ```
 
-### Flexibilidad del Sistema
+### Fórmula de Impacto
 
-- **Perfiles Personalizables:** Cada prestamista define sus propios criterios
-- **Múltiples Tiers:** Pueden configurar 1-5 niveles según apetito de riesgo
-- **Límites Dinámicos:** maxAmount puede ajustarse según liquidez disponible
-- **Tasas Competitivas:** interestRate refleja el riesgo percibido
+```typescript
+calculateEventImpact(eventType, amountUSDC, decayFactor):
+  rawImpact = base + (perUSDC × amountUSDC)
+  cappedImpact = Math.min(rawImpact, maxPerEvent)
+  finalImpact = Math.round(cappedImpact × decayFactor)
+```
+
+### Ejemplos
+
+| Evento | Monto | Decay | Impacto |
+|---|---|---|---|
+| `escrow_completed` | 500 USDC | 1.0 (primera vez) | `min(15 + 2.5, 60) × 1.0 = 17` |
+| `escrow_completed` | 500 USDC | 0.7 (segunda vez misma contraparte) | `17 × 0.7 = 12` |
+| `loan_repaid` | 2000 USDC | 1.0 | `min(20 + 16, 80) = 36` |
+| `tanda_cycle_completed` | 300 USDC | 1.0 | `min(40 + 3, 100) = 43` |
 
 ---
 
-## Limitaciones Actuales y Futuras Mejoras
+## Mecanismo Anti-Sybil: Counterparty Decay
 
-### Limitaciones del MVP
+Para prevenir que usuarios inflen su score transaccionando repetidamente con la misma contraparte:
 
-1. **Datos Auto-Reportados:** El cuestionario inicial depende de honestidad del usuario
-2. **Validación Limitada:** No hay verificación on-chain de balances/transacciones
-3. **Score Estático:** Entre pagos, el score no considera nuevos comportamientos
-4. **Modelo Simplista:** Fórmula lineal sin machine learning
-
-### Integración Stellar Blockchain (Implementado)
-
-El sistema ZCore ya incorpora validación on-chain mediante **Stellar Horizon API**, combinando datos auto-reportados con información verificable de blockchain:
-
-#### Scoring Híbrido Implementado
-
-**Peso 40% - Cuestionario Auto-Reportado**
-
-- **walletAge** (meses) × 0.2
-- **averageBalance** × 0.0001
-- **transactionCount** × 0.1
-- **defiInteractions** × 5.0
-- **monthlyIncome** × 0.0005
-
-**Peso 60% - Datos Verificados de Stellar Blockchain**
-
-Obtenidos automáticamente vía Horizon API:
-
-**1. Edad de Wallet (Máximo: 100 puntos)**
-
-- **Fuente**: Primera transacción encontrada en orden ascendente
-- **Cálculo**: `Math.min(walletAge / 365 * 50, 100)`
-- **Lógica**: 50 puntos por año de antigüedad, máximo 100 puntos (2+ años)
-
-**2. Actividad Transaccional (Máximo: 80 puntos)**
-
-- **Fuente**: Total de transacciones (límite 200 más recientes)
-- **Cálculo**: `Math.min(totalTransactions * 0.5, 80)`
-- **Lógica**: 0.5 puntos por transacción, máximo 80 puntos (160+ transacciones)
-
-**3. Tasa de Éxito (Máximo: 50 puntos)**
-
-- **Fuente**: Transacciones exitosas vs total
-- **Cálculo**: `(successfulTransactions / totalTransactions) * 50`
-- **Lógica**: Penaliza transacciones fallidas
-
-**4. Balance XLM (Máximo: 70 puntos)**
-
-- **Fuente**: Balance actual en asset nativo (XLM)
-- **Cálculo**: `Math.min(Math.log10(averageBalance + 1) * 20, 70)`
-- **Lógica**: Escala logarítmica para evitar dominancia de balances altos
-
-**5. Diversidad de Activos (Máximo: 50 puntos)**
-
-- **Fuente**: Número de trustlines (activos no nativos)
-- **Cálculo**: `Math.min(trustlineCount * 10, 50)`
-- **Lógica**: Más activos = mayor sofisticación DeFi
-
-**6. Actividad de Operaciones (Máximo: 30 puntos)**
-
-- **Fuente**: Operaciones realizadas (límite 200 más recientes)
-- **Cálculo**: `Math.min(operationsCount * 0.2, 30)`
-- **Lógica**: Operaciones indican uso activo de la red
-
-#### Fórmula de Integración Final
-
-```javascript
-// Stellar Score máximo: 380 puntos
-stellarScore =
-  ageScore + txScore + successScore + balanceScore + trustlineScore + opsScore;
-
-// Combinación final (40% cuestionario + 60% Stellar)
-finalScore = questionnaireScore * 0.4 + stellarScore * 0.6;
-
-// Normalización al rango 300-850
-normalizedScore = 300 + (finalScore / 600) * 550;
+```typescript
+applyCounterpartyDecay(interactionCount):
+  1  → 1.0  (100%)
+  2  → 0.7  (70%)
+  3  → 0.4  (40%)
+  4+ → 0.1  (10%)
 ```
 
-#### Casos Especiales del Sistema
+`interactionCount` = número total de `CreditEvent` con `userId` + `counterpartyWallet` iguales (incluyendo el actual).
 
-- **Wallet inexistente en Stellar**: Score = 0 para componente blockchain, fallback a cuestionario únicamente
-- **API failure**: Fallback automático a scoring tradicional solo con cuestionario
-- **Wallet nueva**: Se valora la existencia misma en Stellar (puntos base por estar en la red)
+Si `counterpartyWallet` no se provee, `decayFactor = 1.0`.
 
-#### Transparencia del Scoring
+---
 
-El sistema retorna breakdown completo:
+## Mecanismo Anti-Replay: txHash único
+
+La tabla `CreditEvent` tiene `txHash @unique`. Si una plataforma intenta reportar el mismo txHash dos veces, el endpoint retorna `409 Conflict` antes de tocar el score:
+
+```
+1. findUnique({txHash}) → 409 si existe
+2. verifyTransaction(txHash) en Horizon → 400 si no válida/exitosa
+3. $transaction([createEvent, updateUser])
+```
+
+---
+
+## Verificación On-Chain
+
+Cada evento pasa por `verifyTransaction(txHash)` en `stellar.service.ts`:
+
+- Llama a `GET {HORIZON_URL}/transactions/{txHash}`
+- Verifica que la transacción exista y que `successful === true`
+- Retorna `{ valid, successful, sourceAccount, createdAt, error? }`
+
+Un evento con txHash no verificable o fallido en Stellar nunca impacta el score.
+
+---
+
+## Tiers de Perfil
+
+```typescript
+assignProfileTier(score):
+  score >= 600  → "A"
+  score >= 350  → "B"
+  score >= 100  → "C"
+  else          → "REJECTED"
+```
+
+| Tier | Score Mínimo | Descripción |
+|---|---|---|
+| A | 600 | Historial sólido de pagos verificados |
+| B | 350 | Buena actividad, acceso estándar |
+| C | 100 | Actividad limitada, acceso restringido |
+| REJECTED | 0 | Sin suficiente historial verificado |
+
+El tier se actualiza en el mismo `$transaction` que crea el `CreditEvent`.
+
+---
+
+## Score Total
+
+```
+score = stellarBase (0-150) + sum(scoreImpact of all CreditEvents)
+score = clamp(score, 0, 850)
+```
+
+El breakdown completo se expone en `GET /api/user/:wallet/score`:
 
 ```json
 {
-  "scoringBreakdown": {
-    "questionnaireScore": 450,
-    "stellarScore": 200,
-    "finalScore": 680
+  "score": 243,
+  "tier": "C",
+  "breakdown": {
+    "stellarBase": 87,
+    "eventsScore": 156,
+    "totalEvents": 4,
+    "platforms": [
+      { "name": "Trustless Work", "eventCount": 3, "totalImpact": 89 },
+      { "name": "Vaquita",        "eventCount": 1, "totalImpact": 67 }
+    ]
   }
 }
 ```
 
-### Roadmap de Mejoras
-
-#### Fase 2: Validación Multi-Chain
-
-- **Análisis Real de Wallet:** Extender a Ethereum, Polygon, BSC, Solana
-- **Integración Multi-Chain:** Combinar scores de múltiples blockchains
-- **DeFi Score:** Participación en protocolos específicos (Aave, Compound, Uniswap)
-
-#### Fase 3: Modelo Predictivo
-
-- **Machine Learning:** Algoritmos de regresión y clasificación
-- **Behavioral Analytics:** Patrones de transacciones y timing
-- **External Data:** Integración con APIs de credit bureaus tradicionales
-
-#### Fase 4: Score Continuo
-
-- **Real-Time Updates:** Score actualizado con cada transacción relevante
-- **Predictive Indicators:** Señales tempranas de deterioro crediticio
-- **Social Credit:** Reputación basada en redes y endorsements
-
 ---
 
-## Consideraciones de Seguridad y Privacidad
+## Limitaciones Actuales y Roadmap
 
-### Protección de Datos
+### Implementado (v1.0)
+- Stellar Base + Credit Events
+- txHash uniqueness (anti-replay)
+- Counterparty decay (anti-Sybil)
+- Verificación on-chain de txHash
 
-- **Zero-Knowledge Proofs:** Demostrar score sin revelar componentes
-- **Encriptación:** Datos sensibles almacenados con cifrado AES-256
-- **Auditoría:** Logs inmutables de todas las decisiones de score
-
-### Prevención de Manipulación
-
-- **Rate Limiting:** Límites en consultas para prevenir farming
-- **Anomaly Detection:** Identificación de patrones sospechosos
-- **Multi-Factor Validation:** Verificación cruzada de métricas
-
----
-
-## Métricas y Monitoreo
-
-### KPIs del Sistema
-
-- **Accuracy Rate:** % de predicciones correctas de default
-- **Score Stability:** Variabilidad del score en el tiempo
-- **Tier Migration:** Flujo de usuarios entre tiers
-- **Default Rate por Tier:** Validación del modelo de riesgo
-
-### Alertas Operacionales
-
-- **Score Drift:** Cambios masivos inesperados
-- **Tier Imbalance:** Concentración excesiva en un tier
-- **Payment Pattern Anomalies:** Comportamientos de pago inusuales
-
----
-
-## Conclusiones
-
-El sistema de scoring de ZCore proporciona una base sólida para evaluación crediticia en Web3, balanceando simplicidad para el MVP con extensibilidad futura. La metodología combina métricas on-chain verificables con datos auto-reportados, creando un perfil de riesgo que mejora continuamente con el comportamiento de pago.
-
-La arquitectura modular permite a prestamistas personalizar completamente sus criterios de riesgo mientras mantiene consistencia en la evaluación de usuarios, estableciendo las bases para un ecosistema de credit scoring descentralizado y portable.
+### Pendiente (issues abiertos)
+- Monthly rate limit por plataforma (max N eventos/mes por wallet+platform)
+- Wallet age minimum para registro
+- Score decay por inactividad
+- Batch event reporting

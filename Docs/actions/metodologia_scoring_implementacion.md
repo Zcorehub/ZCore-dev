@@ -1,3 +1,6 @@
+> **ARCHIVO HISTÓRICO — ZCore v1 (Score 0-350, cuestionario + Stellar)**
+> Ver `Docs/metodologia_scoring.md` para la metodología actual (Model B, score 0-850).
+
 # Plan de Implementación: Sistema de Scoring ZCore
 
 ## Resumen del Estado Actual

@@ -1,3 +1,6 @@
+> **ARCHIVO HISTÓRICO — ZCore v1 (Score 0-350, sin partner events)**
+> Este documento describe la API original. Ver `Docs/arquitectura_zcore.md` para el estado actual (Model B, score 0-850).
+
 # Análisis de Endpoints ZCore - API de Scoring Intermediario
 
 ## ✅ **ANÁLISIS ACTUALIZADO: API COMPLETA PARA SU PROPÓSITO**

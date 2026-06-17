@@ -1,3 +1,6 @@
+> **ARCHIVO HISTÓRICO — ZCore v1**
+> Ver `Docs/arquitectura_zcore.md` para la arquitectura actual (Model B).
+
 # Planeación para el Backend ZCore (sin contratos inteligentes)
 
 ## Objetivo

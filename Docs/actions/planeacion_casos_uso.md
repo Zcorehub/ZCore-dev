@@ -1,3 +1,6 @@
+> **ARCHIVO HISTÓRICO — ZCore v1**
+> Ver `Docs/casosUso.md` para los casos de uso actuales (Model B).
+
 # Planeación de Desarrollo de Casos de Uso ZCore API
 
 ## Objetivo

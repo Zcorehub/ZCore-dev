@@ -1,155 +1,100 @@
-# Sistema de Crédito Programable con ZK -- Documento Técnico Completo
+# Sistema de Crédito ZCore - Conceptos y Roadmap
 
-## 1. Zero-Knowledge (ZK): Concepto y Aplicación
-
-Un ZK (Zero-Knowledge Proof) es una técnica criptográfica que permite
-demostrar que cierta información es verdadera sin revelar la información
-en sí.
-
-### Usos relevantes:
-
-- Validación de identidad sin exponer datos.
-- Comprobación de solvencia o score sin mostrar datos privados.
-- Verificación de cálculos fuera de cadena sin revelar entradas.
-- Privacidad en operaciones financieras.
-- Crear reputación verificable sin comprometer privacidad.
-
-En una API financiera, los ZK permiten: 1. Validar requisitos sin
-mostrar datos sensibles. 2. Guardar pruebas verificables para evitar
-manipulación. 3. Cumplir requisitos de privacidad y auditoría.
+> **Nota:** Este documento describe el modelo conceptual del sistema de crédito y características en roadmap. Para la implementación actual (Model B), ver `arquitectura_zcore.md` y `metodologia_scoring.md`.
 
 ---
 
-## 2. Cómo funciona una tarjeta de crédito
+## Modelo Actual: Agregador de Eventos Verificados
 
-Una tarjeta de crédito es una línea de crédito rotativa.
+ZCore NO presta dinero ni gestiona crédito directamente. El modelo actual es:
 
-### Flujo:
-
-1.  Evaluación de riesgo y asignación de límite.
-2.  El usuario compra; el banco paga al comercio.
-3.  El usuario adquiere una deuda.
-4.  Se genera estado de cuenta mensual.
-5.  Pago total, parcial o mínimo.
-6.  Intereses si no se liquida.
-7.  Consecuencias por impago.
+1. **Plataformas partner** (Trustless Work, Blend, Vaquita) gestionan sus propios productos de crédito/escrow/tandas.
+2. **ZCore** agrega los eventos de pago verificados en un score portable (0-850).
+3. **Cualquier DeFi** puede consultar ese score para tomar decisiones de crédito.
 
 ---
 
-## 3. Por qué la gente paga una tarjeta
+## Zero-Knowledge Proofs (Roadmap)
 
-- Evitar intereses altos.
-- Evitar afectar su historial crediticio.
-- Evitar bloqueos o restricciones.
-- Evitar cobranza.
-- Evitar consecuencias legales.
+Un ZK Proof permite demostrar que algo es verdad sin revelar los datos subyacentes.
 
----
+**Aplicaciones planeadas para ZCore:**
 
-## 4. Lógica replicable para la API
+- Demostrar que el score es ≥ N sin revelar el valor exacto
+- Demostrar que el usuario está en Tier A/B sin revelar score
+- Validar elegibilidad sin exponer historial completo
 
-Componentes clave: - Motor de scoring. - Motor de crédito y límites. -
-Registro de transacciones. - Motor de pagos. - Motor de reputación
-dinámica. - Auditoría de eventos. - Opcional: blockchain + ZK.
-
-### Flujo:
-
-1.  Score inicial.
-2.  Asignación de límite.
-3.  Consumo de crédito.
-4.  Registro de uso.
-5.  Pagos.
-6.  Ajustes de score.
-7.  Penalizaciones y recompensas.
+**Estado:** No implementado en v1.0. Issue abierto para contribuidores.
 
 ---
 
-## 5. Sistema de Score Dinámico
+## Cómo se Registra el Comportamiento de Pago
 
-Ejemplos de reglas: - Pago a tiempo: +10 - Pago adelantado: +15 - Pago
-tarde: -20 - No pago: -30 - Bajo uso del límite: +5 - Uso constante del
-100%: -5
+ZCore no maneja dinero. El flujo es:
 
----
+```
+1. Usuario paga en la plataforma partner (on-chain en Stellar)
+2. Plataforma detecta el pago exitoso
+3. Plataforma llama POST /api/events/report con el txHash
+4. ZCore verifica el txHash en Horizon (debe ser exitoso)
+5. ZCore actualiza el score del usuario
+```
 
-## 6. Cómo llegar a tener consecuencias legales reales
-
-Para que un sistema digital genere obligaciones legales deben cumplirse:
-
-### 1. Contrato legal válido
-
-El usuario debe aceptar términos donde reconoce: - la existencia de una
-línea de crédito - las obligaciones de pago - las consecuencias del
-incumplimiento
-
-### 2. Identificación del usuario
-
-Debe existir forma de identificar quién aceptó: - email o teléfono
-verificado - firma electrónica - KYC
-
-### 3. Registro verificable e inalterable
-
-Debe demostrarse: - monto adeudado - operaciones realizadas - aceptación
-del contrato - fechas y firmas
-
-Aquí blockchain puede reforzar la inmutabilidad.\
-Los ZK ayudan a demostrar integridad sin exponer datos sensibles.
+La plataforma es responsable de detectar los pagos. ZCore solo verifica y agrega.
 
 ---
 
-## 7. Fases recomendadas para el proyecto
+## Sistema de Score Dinámico (Actual)
 
-### Fase 1: Simulación (hackathon)
+Eventos que impactan el score:
 
-- Score
-- Límite
-- Deuda simulada
-- Pagos internos No hay obligación legal real.
+| Evento | Impacto Base | Máximo | Plataforma |
+|---|---|---|---|
+| `escrow_completed` | +15 pts | +60 pts | Trustless Work |
+| `loan_repaid` | +20 pts | +80 pts | Blend Protocol |
+| `tanda_round_paid` | +10 pts | +30 pts | Vaquita |
+| `tanda_cycle_completed` | +40 pts | +100 pts | Vaquita |
 
-### Fase 2: Contrato digital
+El impacto crece con el monto (perUSDC × amount) hasta el máximo por evento.
 
-Base para responsabilidad formal.
-
-### Fase 3: Firma electrónica y/o KYC
-
-Permite ejecutar procesos legales si fuera necesario.
-
-### Fase 4: Registro en blockchain + ZK
-
-Transacciones verificables sin exponer datos privados.
+Score negativo: No implementado en v1. Los defaults actualmente no restan puntos — issue abierto.
 
 ---
 
-## 8. Cómo integrar todo en la API
+## Fases del Sistema
 
-### Endpoints sugeridos
+### Fase 1: MVP de Agregación (Implementado)
+- Score 0-850 desde Stellar Base + Credit Events
+- txHash uniqueness (anti-replay)
+- Counterparty decay (anti-Sybil)
+- Platform API key system
+- Score/history endpoints públicos
 
-- POST /score
-- POST /credito/asignar
-- POST /transaccion
-- POST /pago
-- GET /estado-cuenta
-- GET /score/dinamico
-- POST /zk/validar-prueba
-- POST /contrato/aceptar
-- POST /usuario/verificar
+### Fase 2: Consecuencias Negativas (Roadmap)
+- Penalización por default reportado por plataforma
+- Score decay por inactividad
+- Monthly rate limits
 
-### Arquitectura sugerida
+### Fase 3: ZK Proofs (Roadmap)
+- Prueba de score mínimo sin revelar valor
+- Prueba de tier sin revelar score
+- Verificación off-chain con prueba on-chain
 
-- Servicio de scoring
-- Servicio de crédito
-- Servicio de transacciones
-- Servicio de pagos
-- Servicio de auditoría
-- Servicio de identidad
-- Módulo opcional ZK
-- Módulo opcional blockchain
+### Fase 4: Contrato Digital (Roadmap)
+- Términos de uso vinculantes
+- Firma electrónica de compromisos
+- KYC opcional para límites altos
 
 ---
 
-## 9. Objetivo final del sistema
+## Responsabilidad Legal
 
-Crear un sistema de crédito programable donde: - se asignen límites
-basados en score - el usuario consuma y pague - se registre
-comportamiento - se genere reputación verificable - exista posibilidad
-de responsabilidad legal - se use ZK para privacidad y verificación
+ZCore provee infraestructura de información. Las decisiones de crédito las toman las plataformas partner. ZCore:
+
+- ✅ Verifica que los txHash sean reales en Stellar
+- ✅ Agrega eventos verificados en un score
+- ❌ No presta dinero
+- ❌ No toma decisiones de crédito
+- ❌ No custodia fondos
+
+El flujo de dinero es siempre: **Usuario ↔ Plataforma Partner (on-chain en Stellar)**
