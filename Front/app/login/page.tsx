@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiClient } from "@/lib/api-client"
 import { AuthService } from "@/lib/auth"
+import { isValidStellarWallet } from "@/lib/stellar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { XCircle, Loader2, ArrowLeft } from "lucide-react"
 
@@ -18,28 +19,35 @@ export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
+  const [walletAddress, setWalletAddress] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { data, error: apiError } = await apiClient.post<{
-      token: string
-      user: { email: string; walletAddress: string; fullName: string }
-    }>("/api/auth/login", formData)
+    const trimmed = walletAddress.trim()
+    if (!isValidStellarWallet(trimmed)) {
+      setLoading(false)
+      setError("Enter a valid Stellar wallet address (56 characters, starts with G)")
+      return
+    }
+
+    const { data, error: apiError } = await apiClient.login(trimmed)
 
     setLoading(false)
 
     if (apiError) {
-      setError(apiError.message)
-    } else if (data) {
-      AuthService.setToken(data.token)
-      AuthService.setUser(data.user)
+      if (apiError.statusCode === 404) {
+        setError("Wallet not registered. Create an account first.")
+      } else {
+        setError(apiError.message)
+      }
+      return
+    }
+
+    if (data) {
+      AuthService.setSession({ walletAddress: trimmed, score: data.score })
       router.push("/dashboard")
     }
   }
@@ -52,35 +60,31 @@ export default function LoginPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          Back
         </Link>
 
         <Card>
           <CardHeader>
-            <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>Log in to access your ZCore dashboard</CardDescription>
+            <CardTitle>Connect your wallet</CardTitle>
+            <CardDescription>
+              Sign in with your Stellar wallet to view your credit score and history
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="walletAddress">Stellar Wallet Address</Label>
                 <Input
-                  id="email"
-                  type="email"
+                  id="walletAddress"
                   required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="GAYR3..."
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  className="font-mono text-sm"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
+                <p className="text-xs text-muted-foreground">
+                  56-character public key starting with G
+                </p>
               </div>
 
               {error && (
@@ -94,17 +98,17 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
+                    Connecting...
                   </>
                 ) : (
-                  "Log In"
+                  "Sign In"
                 )}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
-                {"Don't have an account? "}
+                New to ZCore?{" "}
                 <Link href="/register" className="text-primary hover:underline">
-                  Create one
+                  Register your wallet
                 </Link>
               </p>
             </form>
