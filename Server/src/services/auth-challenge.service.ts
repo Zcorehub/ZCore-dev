@@ -1,6 +1,8 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+/** SEP-53 prefix used by Freighter, xBull, Albedo, and Stellar Wallets Kit. */
+const SEP53_MESSAGE_PREFIX = Buffer.from("Stellar Signed Message:\n", "utf8");
 
 export interface ChallengePayload {
   walletAddress: string;
@@ -54,6 +56,13 @@ export function validateChallengeMessage(
   return true;
 }
 
+function sep53MessageHash(message: string): Buffer {
+  const messageBytes = Buffer.from(message, "utf8");
+  return createHash("sha256")
+    .update(Buffer.concat([SEP53_MESSAGE_PREFIX, messageBytes]))
+    .digest();
+}
+
 export async function verifyWalletSignature(
   walletAddress: string,
   message: string,
@@ -65,7 +74,9 @@ export async function verifyWalletSignature(
     const { Keypair } = await import("@stellar/stellar-sdk");
     const keypair = Keypair.fromPublicKey(walletAddress);
     const signature = Buffer.from(signatureBase64, "base64");
-    return keypair.verify(Buffer.from(message, "utf8"), signature);
+    if (signature.length !== 64) return false;
+
+    return keypair.verify(sep53MessageHash(message), signature);
   } catch {
     return false;
   }
