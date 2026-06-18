@@ -216,6 +216,10 @@ npm run prisma:studio    # Visual DB browser
 - [x] Score breakdown endpoint for lenders
 - [x] Credit history endpoint for users
 - [x] Platform registration (admin API key management)
+- [x] Wallet signature authentication (challenge + verify)
+- [x] Soroban score-registry smart contract
+- [x] On-chain score attestation flow
+- [x] Stellar Horizon stats in dapp profile
 - [ ] Trustless Work integration (testnet)
 - [ ] Blend Protocol integration (testnet)
 - [ ] Vaquita integration

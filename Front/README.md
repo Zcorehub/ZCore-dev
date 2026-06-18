@@ -17,7 +17,8 @@ Runs at `http://localhost:3001`. The API backend runs at `http://localhost:3000`
 
 ## Features
 
-- **Stellar Wallet Connect** — Freighter, xBull, and Albedo via `@creit.tech/stellar-wallets-kit`
+- **On-Chain Attestation** — Publish score to Soroban `score-registry` contract
+- **Wallet Signature Auth** — Prove ownership via signed challenge (no password)
 - **Register / Login** — Connect wallet, then register or sign in with ZCore API
 - **Credit Overview** — Score (0–850), tier badge, progress to next tier, Stellar Base vs Partner Events breakdown
 - **Credit History** — Verified events from Trustless Work, Blend Protocol, and Vaquita
