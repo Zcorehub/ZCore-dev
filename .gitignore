@@ -1,6 +1,16 @@
 # Generated API spec — served live at /api-docs.json when server runs
 api-docs.json
 
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*
+.env.*.local
+*.pem
+
+# Vercel local link (may contain project ids)
+.vercel
+
 # OS
 .DS_Store
 Thumbs.db

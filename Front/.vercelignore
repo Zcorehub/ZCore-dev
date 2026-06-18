@@ -1,0 +1,12 @@
+# Never upload secrets or local env files to Vercel
+.env
+.env.*
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Local / dev only
+node_modules
+.next
+.vercel

@@ -25,3 +25,4 @@ Thumbs.db
 
 # Prisma — generated client only, migrations must be committed
 node_modules/.prisma/
+.vercel
