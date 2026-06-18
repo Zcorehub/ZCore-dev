@@ -62,4 +62,10 @@ export function getSelectedWalletName(): string | null {
   }
 }
 
+export async function signAuthMessage(message: string): Promise<string> {
+  initWalletKit()
+  const result = await StellarWalletsKit.signMessage(Buffer.from(message, "utf8"))
+  return Buffer.from(result.signature).toString("base64")
+}
+
 export { StellarWalletsKit, KitEventType, FREIGHTER_ID, Networks }

@@ -1,6 +1,33 @@
-import type { ApiError, ApiResponse, CreditHistory, UserProfile } from "./types"
+import type {
+  ApiError,
+  ApiResponse,
+  CreditHistory,
+  UserProfile,
+} from "./types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
+
+export interface SignedAuthPayload {
+  walletAddress: string
+  message: string
+  signature: string
+}
+
+export interface ContractConfig {
+  enabled: boolean
+  contractId?: string
+  network?: string
+  rpcUrl?: string
+}
+
+export interface OnChainScore {
+  walletAddress: string
+  score: number
+  tier: string
+  tierCode: number
+  updatedAt: number
+  source: string
+}
 
 class ApiClient {
   private baseUrl: string
@@ -45,6 +72,27 @@ class ApiClient {
     }
   }
 
+  requestChallenge(walletAddress: string) {
+    return this.request<{ message: string; expiresAt: number }>("/api/auth/challenge", {
+      method: "POST",
+      body: JSON.stringify({ walletAddress }),
+    })
+  }
+
+  registerSigned(payload: SignedAuthPayload) {
+    return this.request<{ score: number }>("/api/auth/register/signed", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  loginSigned(payload: SignedAuthPayload) {
+    return this.request<{ score: number }>("/api/auth/login/signed", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
   register(walletAddress: string) {
     return this.request<{ score: number }>("/api/auth/register", {
       method: "POST",
@@ -65,6 +113,24 @@ class ApiClient {
 
   getHistory(wallet: string) {
     return this.request<CreditHistory>(`/api/user/${wallet}/history`)
+  }
+
+  getContractConfig() {
+    return this.request<ContractConfig>("/api/contracts/config")
+  }
+
+  getOnChainScore(wallet: string) {
+    return this.request<OnChainScore>(`/api/user/${wallet}/on-chain`)
+  }
+
+  attestOnChain(wallet: string, payload: SignedAuthPayload) {
+    return this.request<{ txHash: string; score: number; tier: string }>(
+      `/api/user/${wallet}/attest`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    )
   }
 }
 
