@@ -1,22 +1,27 @@
 import { z } from "zod";
 
+const StellarWalletSchema = z
+  .string()
+  .length(56, "Stellar wallet address must be 56 characters")
+  .regex(/^G[A-Z2-7]{55}$/, "Invalid Stellar wallet address format");
+
 export const RegisterSchema = z.object({
-  walletAddress: z.string().min(10, "Invalid wallet address"),
+  walletAddress: StellarWalletSchema,
 });
 
 export const LoginSchema = z.object({
-  walletAddress: z.string().min(10, "Invalid wallet address"),
+  walletAddress: StellarWalletSchema,
 });
 
 export const ScoringRequestSchema = z.object({
-  walletAddress: z.string().min(10, "Invalid wallet address"),
+  walletAddress: StellarWalletSchema,
   lenderId: z.string().uuid("Invalid lender ID"),
   requestedAmount: z.number().positive("Amount must be positive"),
 });
 
 export const PaymentReportSchema = z.object({
   apiKey: z.string().min(10, "Invalid API key"),
-  walletAddress: z.string().min(10, "Invalid wallet address"),
+  walletAddress: StellarWalletSchema,
   amount: z.number().positive("Amount must be positive"),
   status: z.enum(["paid", "defaulted"]),
   paymentDate: z.string().datetime(),
@@ -36,7 +41,7 @@ export const ProfileDefinitionSchema = z.object({
 });
 
 export const WalletParamSchema = z.object({
-  wallet: z.string().min(10, "Invalid wallet address"),
+  wallet: StellarWalletSchema,
 });
 
 export const CreditEventSchema = z.object({
@@ -47,11 +52,11 @@ export const CreditEventSchema = z.object({
     "tanda_round_paid",
     "tanda_cycle_completed",
   ]),
-  walletAddress: z.string().min(10, "Invalid wallet address"),
+  walletAddress: StellarWalletSchema,
   amount: z.number().positive("Amount must be positive"),
   currency: z.string().default("USDC"),
   txHash: z.string().min(10, "Invalid transaction hash"),
-  counterpartyWallet: z.string().optional(),
+  counterpartyWallet: StellarWalletSchema.optional(),
   timestamp: z.string().datetime(),
 });
 
