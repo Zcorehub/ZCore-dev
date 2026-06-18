@@ -130,7 +130,15 @@ export const requestScoring = async (
  *   get:
  *     tags: [Users]
  *     summary: Get a user's credit score with breakdown (for lenders)
+ *     security:
+ *       - LenderApiKey: []
  *     parameters:
+ *       - in: header
+ *         name: x-api-key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: API key for a registered lender
  *       - in: path
  *         name: wallet
  *         required: true
