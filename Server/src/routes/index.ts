@@ -5,11 +5,13 @@ import lenderRoutes from "./lender.routes";
 import paymentRoutes from "./payment.routes";
 import eventsRoutes from "./events.routes";
 import platformsRoutes from "./platforms.routes";
+import contractsRoutes from "./contracts.routes";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
+router.use("/contracts", contractsRoutes);
 router.use("/lender", lenderRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/events", eventsRoutes);
