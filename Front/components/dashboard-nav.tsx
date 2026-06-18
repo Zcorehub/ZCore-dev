@@ -3,11 +3,12 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LogOut, LayoutDashboard, History, User } from "lucide-react"
+import { LogOut, LayoutDashboard, History, User, Link2 } from "lucide-react"
 import { AuthService } from "@/lib/auth"
 import { truncateWallet } from "@/lib/stellar"
 import { useWallet } from "@/providers/wallet-provider"
 import { NetworkBadge } from "@/components/network-badge"
+import { ZCoreLogo } from "@/components/zcore-logo"
 
 export function DashboardNav() {
   const pathname = usePathname()
@@ -25,19 +26,18 @@ export function DashboardNav() {
   const navItems = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/history", label: "History", icon: History },
+    { href: "/dashboard/attestation", label: "On-Chain", icon: Link2 },
     { href: "/dashboard/profile", label: "Profile", icon: User },
   ]
 
   return (
-    <div className="border-b bg-card">
+    <div className="border-b border-white/[0.08] bg-[#080B14]/90 backdrop-blur-md sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-xl font-bold">
-              ZCore
-            </Link>
+            <ZCoreLogo href="/dashboard" size="sm" />
             <NetworkBadge className="hidden sm:inline-flex" />
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive =
@@ -48,10 +48,10 @@ export function DashboardNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        ? "bg-indigo-600 text-white"
+                        : "text-white/60 hover:text-white hover:bg-white/[0.06]"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -65,12 +65,17 @@ export function DashboardNav() {
             {displayWallet && (
               <div className="hidden sm:block text-right">
                 {walletName && (
-                  <p className="text-xs text-muted-foreground">{walletName}</p>
+                  <p className="text-xs text-white/40">{walletName}</p>
                 )}
-                <p className="text-sm font-mono">{truncateWallet(displayWallet)}</p>
+                <p className="text-sm font-mono text-white/70">{truncateWallet(displayWallet)}</p>
               </div>
             )}
-            <Button onClick={handleLogout} variant="outline" size="sm">
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="border-white/10 bg-transparent hover:bg-white/[0.06] text-white/80"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Disconnect
             </Button>
