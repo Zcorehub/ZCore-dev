@@ -13,7 +13,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Runs at `http://localhost:3000` by default (Next.js). The API backend runs separately at `http://localhost:3000` or configure `NEXT_PUBLIC_API_BASE_URL` in `.env.local`.
+Runs at `http://localhost:3001`. The API backend runs at `http://localhost:3000` — configure via `NEXT_PUBLIC_API_BASE_URL` in `.env.local` if different.
 
 ## Features
 

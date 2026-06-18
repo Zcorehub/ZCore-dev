@@ -204,7 +204,7 @@ npm run prisma:studio    # Visual DB browser
 - **Blockchain:** Stellar Horizon API (transaction verification + wallet scoring)
 - **Validation:** Zod schemas
 - **API docs:** Swagger/OpenAPI 3.0
-- **Frontend:** Next.js (in `Front/`)
+- **Frontend (DApp):** Next.js in `Front/` — user dashboard (landing page is a separate repo)
 
 ---
 
@@ -219,9 +219,10 @@ npm run prisma:studio    # Visual DB browser
 - [ ] Trustless Work integration (testnet)
 - [ ] Blend Protocol integration (testnet)
 - [ ] Vaquita integration
-- [ ] Rate limiting per wallet per month
-- [ ] Wallet age minimum for anti-Sybil (wallets < 30 days don't count)
-- [ ] Frontend dashboard with score breakdown
+- [x] Rate limiting per wallet per month
+- [x] Wallet age minimum for anti-Sybil (wallets < 30 days don't count)
+- [x] Lender API key auth on score endpoint
+- [x] Frontend dashboard with score breakdown
 - [ ] ZK proof layer for private score verification
 
 ---
