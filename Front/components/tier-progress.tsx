@@ -20,25 +20,25 @@ export function TierProgress({
 }: TierProgressProps) {
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">
+      <div className="flex justify-between text-xs">
+        <span className="text-white/40 uppercase tracking-zk">
           Tier {currentTier}
           {nextTier ? ` → ${nextTier}` : " (max)"}
         </span>
-        <span className="font-medium tabular-nums">{score} pts</span>
+        <span className="font-bold tabular-nums text-white/70">{score} pts</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-1.5 w-full overflow-hidden bg-white/[0.06]">
         <div
-          className="h-full bg-primary transition-all duration-500"
+          className="h-full bg-gradient-to-r from-neutral-600 via-white to-neutral-400 transition-all duration-500 shadow-[0_0_12px_rgba(255,255,255,0.15)]"
           style={{ width: `${progress}%` }}
         />
       </div>
       {nextTier ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[10px] text-white/30 uppercase tracking-zk-wide">
           {pointsToNext} points to reach {TIER_LABELS[nextTier]}
         </p>
       ) : (
-        <p className="text-xs text-muted-foreground">Maximum tier reached</p>
+        <p className="text-[10px] text-white/30 uppercase tracking-zk-wide">Maximum tier reached</p>
       )}
     </div>
   )

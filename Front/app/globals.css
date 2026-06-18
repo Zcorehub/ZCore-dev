@@ -3,39 +3,46 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ZCore design system — aligned with Zcore-Landing (#080B14 + indigo/violet) */
+/* ZCore design system — aligned with Zcore-Landing (monochrome ZK) */
 :root {
-  --background: #080b14;
+  --background: #000000;
   --foreground: #ffffff;
-  --card: rgba(255, 255, 255, 0.03);
+  --surface: #0a0a0a;
+  --muted: #a3a3a3;
+  --card: rgba(255, 255, 255, 0.02);
   --card-foreground: #ffffff;
-  --popover: #0d1220;
+  --popover: #0a0a0a;
   --popover-foreground: #ffffff;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: rgba(255, 255, 255, 0.5);
-  --accent: rgba(99, 102, 241, 0.15);
-  --accent-foreground: #c7d2fe;
+  --muted-foreground: rgba(255, 255, 255, 0.4);
+  --accent: rgba(255, 255, 255, 0.05);
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #6366f1;
-  --chart-1: #818cf8;
-  --chart-2: #a78bfa;
-  --chart-3: #34d399;
-  --chart-4: #fbbf24;
-  --chart-5: #f87171;
-  --radius: 0.75rem;
+  --ring: rgba(255, 255, 255, 0.3);
+  --chart-1: #ffffff;
+  --chart-2: #a3a3a3;
+  --chart-3: #737373;
+  --chart-4: #525252;
+  --chart-5: #404040;
+  --radius: 0;
 }
 
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-zk: var(--font-zk), var(--font-mono), ui-monospace, monospace;
+  --tracking-zk: 0.08em;
+  --tracking-zk-wide: 0.14em;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -44,7 +51,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
+  --color-muted: rgba(255, 255, 255, 0.05);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -58,10 +65,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
 }
 
 @layer base {
@@ -69,30 +76,266 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-zk;
   }
   ::selection {
-    background: rgba(99, 102, 241, 0.35);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
   }
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+
   .gradient-text {
-    @apply bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-white via-neutral-300 to-neutral-500 bg-clip-text text-transparent;
   }
 
   .card-glass {
-    @apply bg-white/[0.03] border border-white/[0.08] rounded-2xl backdrop-blur-sm;
+    @apply bg-[#0a0a0a]/60 border border-white/[0.08] backdrop-blur-sm;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
   }
 
-  .glow-indigo {
-    box-shadow: 0 0 60px -10px rgba(99, 102, 241, 0.3);
+  .card-glass:hover {
+    @apply border-white/15;
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.04);
+  }
+
+  .glow-white {
+    box-shadow: 0 0 60px -10px rgba(255, 255, 255, 0.12);
   }
 
   .grid-bg {
     background-image:
-      linear-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .zk-slash {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  }
+
+  .zk-badge {
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+
+  .link-muted {
+    @apply text-white/50 hover:text-white transition-colors;
+  }
+
+  .section-label {
+    @apply text-[10px] font-bold uppercase tracking-zk-wide text-white/40;
+  }
+
+  .page-title {
+    @apply text-2xl sm:text-3xl font-bold uppercase tracking-zk text-white;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-white/40 tracking-wide;
+  }
+
+  .gradient-text-animated {
+    @apply bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent;
+    background-size: 200% auto;
+    animation: gradientShift 4s linear infinite;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes zk-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zk-ring-spin {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(90deg) scale(0.15);
+  }
+}
+
+@keyframes zk-ring-spin-reverse {
+  from {
+    transform: rotate(45deg) scale(1);
+  }
+  to {
+    transform: rotate(-45deg) scale(0.1);
+  }
+}
+
+@keyframes zk-ring-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zk-ring-spin-reverse-slow {
+  from {
+    transform: rotate(45deg);
+  }
+  to {
+    transform: rotate(-315deg);
+  }
+}
+
+@keyframes zk-phase-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes zk-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zk-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes zk-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes zk-flash {
+  0%,
+  75% {
+    opacity: 0;
+  }
+  92% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes zk-hash-scroll {
+  0% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateY(-4px);
+  }
+}
+
+@layer utilities {
+  .animate-zk-slide-up {
+    animation: zk-slide-up 0.8s ease-out both;
+  }
+
+  .animate-zk-ring-spin {
+    animation: zk-ring-spin 2.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-zk-ring-spin-reverse {
+    animation: zk-ring-spin-reverse 2.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-zk-ring-spin-slow {
+    animation: zk-ring-spin-slow 30s linear infinite;
+  }
+
+  .animate-zk-ring-spin-reverse-slow {
+    animation: zk-ring-spin-reverse-slow 25s linear infinite;
+  }
+
+  .animate-zk-phase-in {
+    animation: zk-phase-in 0.35s ease-out both;
+  }
+
+  .animate-zk-fade-in {
+    animation: zk-fade-in 0.25s ease-out both;
+  }
+
+  .animate-zk-pulse {
+    animation: zk-pulse 1.5s ease-in-out infinite;
+  }
+
+  .animate-zk-glow-pulse {
+    animation: zk-glow-pulse 4s ease-in-out infinite;
+  }
+
+  .animate-zk-flash {
+    animation: zk-flash 2.8s ease-in forwards;
+  }
+
+  .animate-zk-hash-scroll {
+    animation: zk-hash-scroll 1.2s ease-in-out infinite;
+  }
+
+  .zk-scanlines {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.03) 4px
+    );
+    animation: zk-scan 0.08s linear infinite;
+  }
+}
+
+@keyframes zk-scan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 4px;
   }
 }

@@ -7,7 +7,7 @@ export function TierBadge({ tier, className }: { tier: string; className?: strin
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium",
+        "inline-flex items-center border px-3 py-1 text-[10px] font-bold uppercase tracking-zk",
         TIER_COLORS[key],
         className
       )}

@@ -3,45 +3,38 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface ZCoreLogoProps {
-  size?: "sm" | "md" | "lg"
-  showText?: boolean
+  size?: "sm" | "md" | "lg" | "xl"
   href?: string
   className?: string
+  onClick?: () => void
 }
 
-const sizes = {
-  sm: { img: 28, text: "text-base" },
-  md: { img: 36, text: "text-lg" },
-  lg: { img: 48, text: "text-xl" },
+const SIZES = {
+  sm: { h: 18, w: 81 },
+  md: { h: 24, w: 108 },
+  lg: { h: 32, w: 144 },
+  xl: { h: 40, w: 180 },
 }
 
-export function ZCoreLogo({
-  size = "md",
-  showText = true,
-  href,
-  className,
-}: ZCoreLogoProps) {
-  const { img, text } = sizes[size]
+export function ZCoreLogo({ size = "md", href, className, onClick }: ZCoreLogoProps) {
+  const { h, w } = SIZES[size]
 
   const content = (
-    <div className={cn("flex items-center gap-2.5", className)}>
+    <span className={cn("inline-flex group", className)}>
       <Image
-        src="/logo.jpeg"
+        src="/logo_name.png"
         alt="ZCore"
-        width={img}
-        height={img}
-        className="rounded-lg"
-        priority
+        width={w}
+        height={h}
+        className="object-contain object-left group-hover:opacity-80 transition-opacity"
+        priority={size === "sm" || size === "md"}
       />
-      {showText && (
-        <span className={cn("font-semibold tracking-tight text-white", text)}>ZCore</span>
-      )}
-    </div>
+    </span>
   )
 
   if (href) {
     return (
-      <Link href={href} className="hover:opacity-90 transition-opacity">
+      <Link href={href} className="inline-flex" onClick={onClick}>
         {content}
       </Link>
     )

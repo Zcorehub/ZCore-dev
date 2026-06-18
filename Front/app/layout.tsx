@@ -1,32 +1,40 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, JetBrains_Mono, Space_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AppProviders } from "@/providers/app-providers"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+})
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-zk",
+})
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dapp-zcore.vercel.app"),
   title: "ZCore — Stellar Credit Dashboard",
-  description: "View your portable credit score and verified on-chain payment history on Stellar",
-  generator: "v0.app",
+  description:
+    "Discover, access, and activate on-chain credit on Stellar. No banks. No forms. Just your wallet.",
+  openGraph: {
+    title: "ZCore",
+    description: "Portable credit scoring for Stellar DeFi.",
+    type: "website",
+    images: ["/logo_name.png"],
+  },
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: "/logo.jpeg",
+    apple: "/logo.jpeg",
   },
 }
 
@@ -37,7 +45,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <body className={`${inter.className} min-h-screen bg-[#080B14] text-white`}>
+      <body
+        className={`${inter.variable} ${jetbrains.variable} ${spaceMono.variable} min-h-screen bg-black text-white antialiased font-zk`}
+      >
         <AppProviders>{children}</AppProviders>
         <Analytics />
       </body>

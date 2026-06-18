@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardNav } from "@/components/dashboard-nav"
+import { DappShell } from "@/components/dapp-shell"
 import { NetworkBadge } from "@/components/network-badge"
 import { TierBadge } from "@/components/tier-badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,17 +73,18 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#080B14]">
+      <DappShell>
         <DashboardNav />
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="max-w-2xl mx-auto space-y-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Wallet Profile</h1>
-              <p className="text-muted-foreground">Your connected Stellar wallet and ZCore account</p>
+              <p className="section-label mb-2">Account</p>
+              <h1 className="page-title mb-2">Wallet Profile</h1>
+              <p className="page-subtitle">Your connected Stellar wallet and ZCore account</p>
             </div>
 
             {walletMismatch && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>
                   Connected wallet does not match your ZCore session. Sign out and reconnect with{" "}
@@ -92,7 +94,7 @@ export default function ProfilePage() {
             )}
 
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -100,7 +102,7 @@ export default function ProfilePage() {
 
             {loading ? (
               <div className="flex justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-white/50" />
               </div>
             ) : profile ? (
               <>
@@ -115,19 +117,19 @@ export default function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="rounded-lg border bg-muted/30 p-4 font-mono text-sm break-all">
+                    <div className="zk-slash border border-white/[0.08] bg-white/[0.02] p-4 font-mono text-xs text-white/70 break-all">
                       {profile.walletAddress}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" size="sm" onClick={copyWallet}>
                         {copied ? (
                           <>
-                            <Check className="h-4 w-4 mr-2" />
+                            <Check className="h-3.5 w-3.5" />
                             Copied
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4 mr-2" />
+                            <Copy className="h-3.5 w-3.5" />
                             Copy address
                           </>
                         )}
@@ -138,7 +140,7 @@ export default function ProfilePage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <ExternalLink className="h-4 w-4 mr-2" />
+                          <ExternalLink className="h-3.5 w-3.5" />
                           View on Explorer
                         </a>
                       </Button>
@@ -147,29 +149,29 @@ export default function ProfilePage() {
                 </Card>
 
                 {horizonStats && (
-                  <Card className="card-glass border-white/[0.08] bg-transparent">
+                  <Card>
                     <CardHeader>
-                      <CardTitle className="text-white">Stellar Horizon Data</CardTitle>
-                      <CardDescription className="text-white/50">
+                      <CardTitle>Stellar Horizon Data</CardTitle>
+                      <CardDescription>
                         Live on-chain metrics that feed your Stellar Base score
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <CardContent className="grid grid-cols-2 gap-4 text-xs">
                       <div>
-                        <p className="text-white/50">Wallet age</p>
-                        <p className="text-lg font-semibold text-white">
+                        <p className="section-label mb-1">Wallet age</p>
+                        <p className="text-lg font-black tabular-nums text-white">
                           {horizonStats.walletAgeDays ?? 0} days
                         </p>
                       </div>
                       <div>
-                        <p className="text-white/50">XLM balance</p>
-                        <p className="text-lg font-semibold text-white">
+                        <p className="section-label mb-1">XLM balance</p>
+                        <p className="text-lg font-black tabular-nums text-white">
                           {horizonStats.xlmBalance.toFixed(2)} XLM
                         </p>
                       </div>
                       <div>
-                        <p className="text-white/50">Trustlines</p>
-                        <p className="text-lg font-semibold text-white">
+                        <p className="section-label mb-1">Trustlines</p>
+                        <p className="text-lg font-black tabular-nums text-white">
                           {horizonStats.trustlineCount}
                         </p>
                       </div>
@@ -177,26 +179,26 @@ export default function ProfilePage() {
                   </Card>
                 )}
 
-                <Card className="card-glass border-white/[0.08] bg-transparent">
+                <Card>
                   <CardHeader>
                     <CardTitle>ZCore Account</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Credit Score</span>
-                      <span className="text-2xl font-bold tabular-nums">{profile.score}</span>
+                      <span className="text-white/40 text-xs uppercase tracking-zk">Credit Score</span>
+                      <span className="text-2xl font-black tabular-nums text-white">{profile.score}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Tier</span>
+                      <span className="text-white/40 text-xs uppercase tracking-zk">Tier</span>
                       <TierBadge tier={profile.profileTier} />
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Member since</span>
-                      <span>{new Date(profile.createdAt).toLocaleDateString()}</span>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/40 uppercase tracking-zk">Member since</span>
+                      <span className="text-white/70">{new Date(profile.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Last updated</span>
-                      <span>{new Date(profile.updatedAt).toLocaleDateString()}</span>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/40 uppercase tracking-zk">Last updated</span>
+                      <span className="text-white/70">{new Date(profile.updatedAt).toLocaleDateString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -204,7 +206,7 @@ export default function ProfilePage() {
             ) : null}
           </div>
         </div>
-      </div>
+      </DappShell>
     </AuthGuard>
   )
 }

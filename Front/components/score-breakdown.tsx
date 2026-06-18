@@ -18,35 +18,35 @@ export function ScoreBreakdown({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex h-4 w-full overflow-hidden rounded-full bg-muted">
+      <div className="flex h-2 w-full overflow-hidden bg-white/[0.06]">
         {stellarBase > 0 && (
           <div
-            className="bg-sky-500 transition-all"
+            className="bg-gradient-to-r from-neutral-600 via-white to-neutral-400 transition-all"
             style={{ width: `${stellarPct}%` }}
             title={`Stellar Base: ${stellarBase}`}
           />
         )}
         {eventsScore > 0 && (
           <div
-            className="bg-violet-500 transition-all"
+            className="bg-gradient-to-r from-neutral-700 via-neutral-400 to-neutral-500 transition-all"
             style={{ width: `${eventsPct}%` }}
             title={`Partner Events: ${eventsScore}`}
           />
         )}
       </div>
-      <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="grid grid-cols-2 gap-4 text-xs">
         <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-sky-500" />
+          <span className="h-2 w-2 bg-white/80 shrink-0" />
           <div>
-            <p className="font-medium">Stellar Base</p>
-            <p className="text-muted-foreground">{stellarBase} / 150 pts</p>
+            <p className="font-bold uppercase tracking-zk text-white/70">Stellar Base</p>
+            <p className="text-white/40">{stellarBase} / 150 pts</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-violet-500" />
+          <span className="h-2 w-2 bg-neutral-500 shrink-0" />
           <div>
-            <p className="font-medium">Partner Events</p>
-            <p className="text-muted-foreground">{eventsScore} pts</p>
+            <p className="font-bold uppercase tracking-zk text-white/70">Partner Events</p>
+            <p className="text-white/40">{eventsScore} pts</p>
           </div>
         </div>
       </div>

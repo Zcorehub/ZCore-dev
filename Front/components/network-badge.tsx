@@ -8,10 +8,10 @@ export function NetworkBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center zk-badge border px-2 py-0.5 text-[10px] font-bold uppercase tracking-zk-wide",
         isTestnet
-          ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
-          : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+          ? "border-white/15 bg-white/[0.04] text-white/50"
+          : "border-white/25 bg-white/[0.08] text-white/70",
         className
       )}
     >

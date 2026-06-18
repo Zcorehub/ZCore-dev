@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardNav } from "@/components/dashboard-nav"
+import { DappShell } from "@/components/dapp-shell"
 import {
   Table,
   TableBody,
@@ -52,19 +53,20 @@ export default function HistoryPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background">
+      <DappShell>
         <DashboardNav />
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="max-w-5xl mx-auto space-y-8">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Credit History</h1>
-              <p className="text-muted-foreground">
+              <p className="section-label mb-2">Audit Trail</p>
+              <h1 className="page-title mb-2">Credit History</h1>
+              <p className="page-subtitle">
                 Full audit trail of verified on-chain events that contribute to your score
               </p>
             </div>
 
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -74,13 +76,13 @@ export default function HistoryPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Total gained</CardDescription>
-                  <CardTitle className="text-2xl text-emerald-600">+{totalPositive}</CardTitle>
+                  <p className="text-2xl font-black tabular-nums text-white pt-1">+{totalPositive}</p>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Total lost</CardDescription>
-                  <CardTitle className="text-2xl text-red-600">{totalNegative}</CardTitle>
+                  <p className="text-2xl font-black tabular-nums text-white/50 pt-1">{totalNegative}</p>
                 </CardHeader>
               </Card>
             </div>
@@ -93,38 +95,38 @@ export default function HistoryPage() {
               <CardContent>
                 {loading ? (
                   <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Loader2 className="h-8 w-8 animate-spin text-white/50" />
                   </div>
                 ) : events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
+                  <p className="text-xs text-white/40 py-8 text-center tracking-wide">
                     No events recorded yet.
                   </p>
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Platform</TableHead>
-                        <TableHead>Event</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Impact</TableHead>
-                        <TableHead className="text-right">Tx</TableHead>
+                      <TableRow className="border-white/[0.06] hover:bg-transparent">
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30">Date</TableHead>
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30">Platform</TableHead>
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30">Event</TableHead>
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30 text-right">Amount</TableHead>
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30 text-right">Impact</TableHead>
+                        <TableHead className="text-[10px] uppercase tracking-zk-wide text-white/30 text-right">Tx</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {events.map((event) => (
-                        <TableRow key={event.eventId}>
-                          <TableCell className="text-muted-foreground">{event.date}</TableCell>
-                          <TableCell>{event.platform}</TableCell>
-                          <TableCell>
+                        <TableRow key={event.eventId} className="border-white/[0.06] hover:bg-white/[0.02]">
+                          <TableCell className="text-white/40 text-xs">{event.date}</TableCell>
+                          <TableCell className="text-white/70 text-xs">{event.platform}</TableCell>
+                          <TableCell className="text-white/80 text-xs">
                             {EVENT_TYPE_LABELS[event.eventType] ?? event.eventType}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">
+                          <TableCell className="text-right tabular-nums text-xs text-white/60">
                             {event.amount} {event.currency}
                           </TableCell>
                           <TableCell
-                            className={`text-right font-medium tabular-nums ${
-                              event.scoreImpact >= 0 ? "text-emerald-600" : "text-red-600"
+                            className={`text-right font-bold tabular-nums text-xs ${
+                              event.scoreImpact >= 0 ? "text-white/80" : "text-white/40"
                             }`}
                           >
                             {event.scoreImpact >= 0 ? "+" : ""}
@@ -135,7 +137,7 @@ export default function HistoryPage() {
                               href={getStellarTxUrl(event.txHash)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-white/40 hover:text-white transition-colors"
                             >
                               {truncateWallet(event.txHash, 4)}
                               <ExternalLink className="h-3 w-3" />
@@ -150,7 +152,7 @@ export default function HistoryPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </DappShell>
     </AuthGuard>
   )
 }

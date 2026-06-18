@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardNav } from "@/components/dashboard-nav"
+import { DappShell } from "@/components/dapp-shell"
 import { TierBadge } from "@/components/tier-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiClient, type ContractConfig, type OnChainScore } from "@/lib/api-client"
 import { AuthService } from "@/lib/auth"
-import { getStellarTxUrl } from "@/lib/stellar"
 import { signAuthMessage } from "@/lib/wallet-kit"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ExternalLink, Link2, Loader2, RefreshCw, Shield, XCircle } from "lucide-react"
@@ -85,29 +85,24 @@ export default function AttestationPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#080B14]">
+      <DappShell>
         <DashboardNav />
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                  <Link2 className="h-7 w-7 text-indigo-400" />
+                <p className="section-label mb-2">Soroban</p>
+                <h1 className="page-title mb-2 flex items-center gap-2">
+                  <Link2 className="h-6 w-6 text-white/50" />
                   On-Chain Attestation
                 </h1>
-                <p className="text-white/50">
-                  Publish your ZCore score to the Soroban registry so lenders can verify it
-                  on-chain without calling our API.
+                <p className="page-subtitle">
+                  Publish your ZCore score to the Soroban registry so lenders can verify it on-chain
+                  without calling our API.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={load}
-                disabled={loading}
-                className="border-white/10 bg-transparent hover:bg-white/[0.06]"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
             </div>
@@ -120,7 +115,7 @@ export default function AttestationPage() {
             )}
 
             {success && (
-              <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+              <Alert className="border-white/20 bg-white/[0.04] text-white/80">
                 <Shield className="h-4 w-4" />
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
@@ -128,53 +123,55 @@ export default function AttestationPage() {
 
             {loading ? (
               <div className="flex justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-white/50" />
               </div>
             ) : (
               <>
-                <Card className="card-glass border-white/[0.08] bg-transparent">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-white">Soroban Score Registry</CardTitle>
-                    <CardDescription className="text-white/50">
+                    <CardTitle>Soroban Score Registry</CardTitle>
+                    <CardDescription>
                       Smart contract that stores portable credit scores on Stellar
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 text-sm">
+                  <CardContent className="space-y-3 text-xs">
                     {config?.enabled ? (
                       <>
-                        <div className="flex justify-between">
-                          <span className="text-white/50">Contract</span>
-                          <span className="font-mono text-xs text-white/70 truncate max-w-[200px]">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-white/40 uppercase tracking-zk">Contract</span>
+                          <span className="font-mono text-[10px] text-white/60 truncate max-w-[200px]">
                             {config.contractId}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-white/50">Network</span>
-                          <span className="capitalize">{config.network}</span>
+                          <span className="text-white/40 uppercase tracking-zk">Network</span>
+                          <span className="text-white/70 capitalize">{config.network}</span>
                         </div>
                       </>
                     ) : (
-                      <p className="text-white/50">
+                      <p className="text-white/40 tracking-wide">
                         Contract not deployed yet. See{" "}
-                        <code className="text-indigo-400">Contracts/README.md</code> to deploy
-                        the score-registry contract and configure the oracle.
+                        <code className="text-white/60 font-mono text-[10px]">Contracts/README.md</code>{" "}
+                        to deploy the score-registry contract and configure the oracle.
                       </p>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card className="card-glass border-white/[0.08] bg-transparent">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-white">Your On-Chain Score</CardTitle>
+                    <CardTitle>Your On-Chain Score</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {onChain && onChain.score > 0 ? (
                       <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                          <span className="text-5xl font-bold tabular-nums">{onChain.score}</span>
+                          <span className="text-5xl font-black tabular-nums tracking-tighter text-white font-display">
+                            {onChain.score}
+                          </span>
                           <TierBadge tier={onChain.tier} />
                         </div>
-                        <p className="text-sm text-white/50">
+                        <p className="text-[10px] text-white/35 uppercase tracking-zk-wide">
                           Last attested:{" "}
                           {onChain.updatedAt
                             ? new Date(onChain.updatedAt * 1000).toLocaleString()
@@ -182,14 +179,14 @@ export default function AttestationPage() {
                         </p>
                       </div>
                     ) : (
-                      <p className="text-white/50 text-sm">
-                        No on-chain attestation yet. Publish your current score to make it
-                        verifiable by any Stellar protocol.
+                      <p className="text-xs text-white/40 tracking-wide">
+                        No on-chain attestation yet. Publish your current score to make it verifiable
+                        by any Stellar protocol.
                       </p>
                     )}
 
                     <Button
-                      className="mt-6 bg-indigo-600 hover:bg-indigo-500"
+                      className="mt-6 glow-white"
                       onClick={handleAttest}
                       disabled={attesting || !config?.enabled}
                     >
@@ -205,19 +202,23 @@ export default function AttestationPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="card-glass border-white/[0.08] bg-transparent">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="text-white text-base">How it works</CardTitle>
+                    <CardTitle>How it works</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-sm text-white/50 space-y-2">
+                  <CardContent className="text-xs text-white/40 space-y-2 tracking-wide">
                     <p>1. You sign a message proving wallet ownership (no XLM fee).</p>
                     <p>2. The ZCore oracle writes your score to the Soroban contract.</p>
-                    <p>3. Lenders call <code className="text-indigo-400">get_score(wallet)</code> directly on-chain.</p>
+                    <p>
+                      3. Lenders call{" "}
+                      <code className="text-white/60 font-mono text-[10px]">get_score(wallet)</code>{" "}
+                      directly on-chain.
+                    </p>
                     <a
                       href="https://developers.stellar.org/docs/build/smart-contracts"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-indigo-400 hover:underline mt-2"
+                      className="inline-flex items-center gap-1 text-white/50 hover:text-white transition-colors mt-2 uppercase tracking-zk text-[10px]"
                     >
                       Stellar Soroban docs <ExternalLink className="h-3 w-3" />
                     </a>
@@ -227,7 +228,7 @@ export default function AttestationPage() {
             )}
           </div>
         </div>
-      </div>
+      </DappShell>
     </AuthGuard>
   )
 }

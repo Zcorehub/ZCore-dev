@@ -13,7 +13,7 @@ import { AuthService } from "@/lib/auth"
 import { truncateWallet } from "@/lib/stellar"
 import { signAuthMessage } from "@/lib/wallet-kit"
 import { useWallet } from "@/providers/wallet-provider"
-import { ArrowLeft, Loader2, Shield, XCircle } from "lucide-react"
+import { Loader2, Shield, XCircle } from "lucide-react"
 
 interface WalletAuthCardProps {
   mode: "login" | "register"
@@ -77,32 +77,32 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
   }
 
   return (
-    <Card className="card-glass border-white/[0.08] bg-transparent">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-white">
+          <CardTitle className="text-base normal-case tracking-normal font-bold">
             {isLogin ? "Connect your wallet" : "Register your wallet"}
           </CardTitle>
           <NetworkBadge />
         </div>
-        <CardDescription className="text-white/50">
+        <CardDescription>
           {isLogin
             ? "Connect Freighter, xBull, or Albedo and sign to prove wallet ownership"
             : "Connect your Stellar wallet — ZCore verifies it on-chain and calculates your base score"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ConnectWalletButton variant="default" className="w-full bg-indigo-600 hover:bg-indigo-500" />
+        <ConnectWalletButton variant="default" className="w-full glow-white" />
 
         {address && (
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 space-y-1">
-            <p className="text-xs text-white/40 uppercase tracking-wide">Connected</p>
-            <p className="font-medium text-white">{walletName ?? "Stellar Wallet"}</p>
-            <p className="font-mono text-sm text-white/60">{truncateWallet(address, 8)}</p>
+          <div className="zk-slash border border-white/[0.08] bg-white/[0.02] p-4 space-y-1">
+            <p className="section-label">Connected</p>
+            <p className="font-medium text-white/80">{walletName ?? "Stellar Wallet"}</p>
+            <p className="font-mono text-xs text-white/50">{truncateWallet(address, 8)}</p>
             <button
               type="button"
               onClick={() => disconnect()}
-              className="text-xs text-indigo-400 hover:underline mt-1"
+              className="text-[10px] uppercase tracking-zk text-white/40 hover:text-white mt-1 transition-colors"
             >
               Use a different wallet
             </button>
@@ -110,8 +110,8 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
         )}
 
         {address && (
-          <div className="flex items-start gap-2 text-xs text-white/40">
-            <Shield className="h-4 w-4 shrink-0 mt-0.5 text-indigo-400" />
+          <div className="flex items-start gap-2 text-[10px] text-white/35 uppercase tracking-zk-wide">
+            <Shield className="h-3.5 w-3.5 shrink-0 mt-0.5 text-white/50" />
             <span>
               You will sign a one-time message to prove you control this wallet. No transaction
               fees.
@@ -127,23 +127,19 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
         )}
 
         {!address ? (
-          <p className="text-xs text-center text-white/40">
+          <p className="text-[10px] text-center text-white/35 uppercase tracking-zk-wide">
             Don&apos;t have a wallet?{" "}
             <a
               href="https://freighter.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-400 hover:underline"
+              className="text-white/60 hover:text-white transition-colors"
             >
               Install Freighter
             </a>
           </p>
         ) : (
-          <Button
-            className="w-full bg-indigo-600 hover:bg-indigo-500"
-            onClick={handleContinue}
-            disabled={loading}
-          >
+          <Button className="w-full glow-white" onClick={handleContinue} disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -158,27 +154,23 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
         )}
 
         {!address && (
-          <Button
-            variant="ghost"
-            className="w-full text-white/50 hover:text-white hover:bg-white/[0.06]"
-            onClick={() => connect()}
-          >
+          <Button variant="ghost" className="w-full" onClick={() => connect()}>
             Re-open wallet selector
           </Button>
         )}
 
-        <p className="text-center text-sm text-white/40">
+        <p className="text-center text-[10px] text-white/35 uppercase tracking-zk-wide">
           {isLogin ? (
             <>
               New to ZCore?{" "}
-              <Link href="/register" className="text-indigo-400 hover:underline">
+              <Link href="/register" className="text-white/60 hover:text-white transition-colors">
                 Register your wallet
               </Link>
             </>
           ) : (
             <>
               Already registered?{" "}
-              <Link href="/login" className="text-indigo-400 hover:underline">
+              <Link href="/login" className="text-white/60 hover:text-white transition-colors">
                 Sign in
               </Link>
             </>

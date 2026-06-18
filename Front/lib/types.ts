@@ -46,10 +46,10 @@ export const TIER_LABELS: Record<ProfileTier, string> = {
 }
 
 export const TIER_COLORS: Record<ProfileTier, string> = {
-  A: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  B: "bg-blue-500/15 text-blue-600 border-blue-500/30",
-  C: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  REJECTED: "bg-red-500/15 text-red-600 border-red-500/30",
+  A: "border-white/30 bg-white/10 text-white",
+  B: "border-white/20 bg-white/[0.06] text-white/80",
+  C: "border-white/15 bg-white/[0.04] text-white/60",
+  REJECTED: "border-white/10 bg-white/[0.02] text-white/40",
 }
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {
