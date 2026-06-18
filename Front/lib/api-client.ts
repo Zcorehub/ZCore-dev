@@ -1,19 +1,6 @@
-"use server"
+import type { ApiError, ApiResponse, CreditHistory, UserProfile } from "./types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
-
-export interface ApiResponse<T = unknown> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
-}
-
-export interface ApiError {
-  message: string
-  statusCode: number
-  error?: string
-}
 
 class ApiClient {
   private baseUrl: string
@@ -22,7 +9,10 @@ class ApiClient {
     this.baseUrl = API_BASE_URL
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<{ data?: T; error?: ApiError }> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<{ data?: T; error?: ApiError }> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
@@ -32,19 +22,19 @@ class ApiClient {
         },
       })
 
-      const data = await response.json()
+      const body = (await response.json()) as ApiResponse<T>
 
       if (!response.ok) {
         return {
           error: {
-            message: data.error || data.message || "An error occurred",
+            message: body.error || body.message || "An error occurred",
             statusCode: response.status,
-            error: data.error,
+            error: body.error,
           },
         }
       }
 
-      return { data }
+      return { data: body.data }
     } catch (error) {
       return {
         error: {
@@ -55,19 +45,26 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string, token?: string) {
-    return this.request<T>(endpoint, {
-      method: "GET",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+  register(walletAddress: string) {
+    return this.request<{ score: number }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ walletAddress }),
     })
   }
 
-  async post<T>(endpoint: string, body: unknown, token?: string) {
-    return this.request<T>(endpoint, {
+  login(walletAddress: string) {
+    return this.request<{ score: number }>("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify(body),
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({ walletAddress }),
     })
+  }
+
+  getProfile(wallet: string) {
+    return this.request<UserProfile>(`/api/user/${wallet}/profile`)
+  }
+
+  getHistory(wallet: string) {
+    return this.request<CreditHistory>(`/api/user/${wallet}/history`)
   }
 }
 

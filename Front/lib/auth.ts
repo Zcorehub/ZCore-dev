@@ -1,47 +1,48 @@
 "use client"
 
-export interface User {
-  email: string
+export interface Session {
   walletAddress: string
-  fullName: string
+  score: number
 }
 
+const SESSION_KEY = "zcore_session"
+
 export const AuthService = {
-  setToken(token: string) {
+  setSession(session: Session) {
     if (typeof window !== "undefined") {
-      localStorage.setItem("zcore_token", token)
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     }
   },
 
-  getToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("zcore_token")
-    }
-    return null
-  },
-
-  removeToken() {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("zcore_token")
-      localStorage.removeItem("zcore_user")
+  getSession(): Session | null {
+    if (typeof window === "undefined") return null
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as Session
+    } catch {
+      return null
     }
   },
 
-  setUser(user: User) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("zcore_user", JSON.stringify(user))
+  getWallet(): string | null {
+    return this.getSession()?.walletAddress ?? null
+  },
+
+  updateScore(score: number) {
+    const session = this.getSession()
+    if (session) {
+      this.setSession({ ...session, score })
     }
   },
 
-  getUser(): User | null {
+  clearSession() {
     if (typeof window !== "undefined") {
-      const user = localStorage.getItem("zcore_user")
-      return user ? JSON.parse(user) : null
+      localStorage.removeItem(SESSION_KEY)
     }
-    return null
   },
 
   isAuthenticated(): boolean {
-    return !!this.getToken()
+    return !!this.getWallet()
   },
 }
