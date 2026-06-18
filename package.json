@@ -1,0 +1,18 @@
+{
+  "name": "zcore",
+  "private": true,
+  "description": "ZCore — portable credit scoring for Stellar DeFi",
+  "homepage": "https://dapp-zcore.vercel.app",
+  "scripts": {
+    "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
+    "setup:unix": "bash scripts/setup.sh",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "dev:server": "npm run dev --prefix Server",
+    "dev:front": "npm run dev --prefix Front",
+    "install:all": "npm install --prefix Server && npm install --prefix Front --legacy-peer-deps",
+    "prisma:migrate": "npm run prisma:generate --prefix Server && npx prisma migrate deploy --schema Server/prisma/schema.prisma",
+    "prisma:seed": "npm run prisma:seed --prefix Server"
+  }
+}
