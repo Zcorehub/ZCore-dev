@@ -3,29 +3,28 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LogOut, LayoutDashboard, Search, Building2, Receipt } from "lucide-react"
+import { LogOut, LayoutDashboard, History } from "lucide-react"
 import { AuthService } from "@/lib/auth"
+import { truncateWallet } from "@/lib/stellar"
 import { useState, useEffect } from "react"
 
 export function DashboardNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<{ email: string } | null>(null)
+  const [wallet, setWallet] = useState<string | null>(null)
 
   useEffect(() => {
-    setUser(AuthService.getUser())
+    setWallet(AuthService.getWallet())
   }, [])
 
   const handleLogout = () => {
-    AuthService.removeToken()
+    AuthService.clearSession()
     router.push("/login")
   }
 
   const navItems = [
-    { href: "/dashboard", label: "Scoring", icon: LayoutDashboard },
-    { href: "/dashboard/search", label: "Search Profile", icon: Search },
-    { href: "/dashboard/lender", label: "Lender Profiles", icon: Building2 },
-    { href: "/dashboard/payments", label: "Payments", icon: Receipt },
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+    { href: "/dashboard/history", label: "History", icon: History },
   ]
 
   return (
@@ -33,18 +32,22 @@ export function DashboardNav() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-bold">
+            <Link href="/dashboard" className="text-xl font-bold">
               ZCore
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon
+                const isActive =
+                  item.href === "/dashboard"
+                    ? pathname === "/dashboard"
+                    : pathname.startsWith(item.href)
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      pathname === item.href
+                      isActive
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
@@ -57,10 +60,14 @@ export function DashboardNav() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            {user && <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>}
+            {wallet && (
+              <span className="text-sm font-mono text-muted-foreground hidden sm:inline">
+                {truncateWallet(wallet)}
+              </span>
+            )}
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              Disconnect
             </Button>
           </div>
         </div>

@@ -7,8 +7,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "ZCore - Private Credit Scoring for Web3",
-  description: "Enable under-collateralized lending in DeFi through portable, verifiable reputation",
+  title: "ZCore — Stellar Credit Dashboard",
+  description: "View your portable credit score and verified on-chain payment history on Stellar",
   generator: "v0.app",
   icons: {
     icon: [
