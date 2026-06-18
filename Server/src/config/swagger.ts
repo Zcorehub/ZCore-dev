@@ -19,6 +19,14 @@ const options: swaggerJsdoc.Options = {
       },
     ],
     components: {
+      securitySchemes: {
+        LenderApiKey: {
+          type: "apiKey",
+          in: "header",
+          name: "x-api-key",
+          description: "Lender API key",
+        },
+      },
       schemas: {
         User: {
           type: "object",
