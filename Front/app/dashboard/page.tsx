@@ -6,12 +6,14 @@ import { AuthGuard } from "@/components/auth-guard"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { ScoreBreakdown } from "@/components/score-breakdown"
 import { TierBadge } from "@/components/tier-badge"
+import { TierProgress } from "@/components/tier-progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiClient } from "@/lib/api-client"
 import { AuthService } from "@/lib/auth"
 import { getStellarTxUrl } from "@/lib/stellar"
 import { EVENT_TYPE_LABELS, type CreditEventItem, type UserProfile } from "@/lib/types"
+import { getTierProgress } from "@/lib/tier-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowRight, ExternalLink, Loader2, RefreshCw, XCircle } from "lucide-react"
 
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   }, [])
 
   const stellarBase = profile ? Math.max(0, profile.score - eventsScore) : 0
+  const tierProgress = profile ? getTierProgress(profile.score) : null
 
   return (
     <AuthGuard>
@@ -103,12 +106,21 @@ export default function DashboardPage() {
                       <TierBadge tier={profile.profileTier} />
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-6">
                     <ScoreBreakdown
                       stellarBase={stellarBase}
                       eventsScore={eventsScore}
                       totalScore={profile.score}
                     />
+                    {tierProgress && (
+                      <TierProgress
+                        score={profile.score}
+                        currentTier={tierProgress.currentTier}
+                        nextTier={tierProgress.nextTier}
+                        progress={tierProgress.progress}
+                        pointsToNext={tierProgress.pointsToNext}
+                      />
+                    )}
                   </CardContent>
                 </Card>
 
