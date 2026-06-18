@@ -1,30 +1,33 @@
-# ZCore API documentation
+# ZCore DApp
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+User-facing dashboard for ZCore — portable credit scoring on Stellar.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/mlo-aas-projects/v0-zc-ore-api-documentation)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/tDXGb39KULh)
+The marketing landing page lives in a separate repository. This app handles wallet registration, login, score overview, and credit history.
 
-## Overview
+## Setup
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+```bash
+cd Front
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-## Deployment
+Runs at `http://localhost:3000` by default (Next.js). The API backend runs separately at `http://localhost:3000` or configure `NEXT_PUBLIC_API_BASE_URL` in `.env.local`.
 
-Your project is live at:
+## Features
 
-**[https://vercel.com/mlo-aas-projects/v0-zc-ore-api-documentation](https://vercel.com/mlo-aas-projects/v0-zc-ore-api-documentation)**
+- **Register / Login** — Stellar wallet only (no email, no JWT)
+- **Credit Overview** — Score (0–850), tier badge, Stellar Base vs Partner Events breakdown
+- **Credit History** — Verified events from Trustless Work, Blend Protocol, and Vaquita
 
-## Build your app
+## Environment
 
-Continue building your app on:
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | ZCore API base URL (default: `http://localhost:3000`) |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` or `mainnet` for tx explorer links |
 
-**[https://v0.app/chat/tDXGb39KULh](https://v0.app/chat/tDXGb39KULh)**
+## Stack
 
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Next.js 16 · TypeScript · shadcn/ui · Tailwind CSS
