@@ -9,6 +9,16 @@ export const RegisterSchema = z.object({
   walletAddress: StellarWalletSchema,
 });
 
+export const SignedAuthSchema = z.object({
+  walletAddress: StellarWalletSchema,
+  message: z.string().min(20, "Invalid challenge message"),
+  signature: z.string().min(10, "Invalid signature"),
+});
+
+export const ChallengeRequestSchema = z.object({
+  walletAddress: StellarWalletSchema,
+});
+
 export const LoginSchema = z.object({
   walletAddress: StellarWalletSchema,
 });

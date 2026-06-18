@@ -4,6 +4,10 @@ import {
   assignProfileTier,
   calculateStellarBase,
 } from "../services/scoring.service";
+import {
+  createChallenge,
+  verifyWalletSignature,
+} from "../services/auth-challenge.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
 /**
@@ -236,6 +240,151 @@ export const loginUser = async (
       data: {
         score: user.score,
       },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/auth/challenge:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Request a wallet signature challenge
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [walletAddress]
+ *             properties:
+ *               walletAddress:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Challenge message to sign with Stellar wallet
+ */
+export const requestChallenge = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { walletAddress } = req.body as { walletAddress: string };
+    const challenge = createChallenge(walletAddress);
+
+    return res.status(200).json({
+      success: true,
+      data: challenge,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/auth/login/signed:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Login with wallet signature proof
+ */
+export const loginWithSignature = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { walletAddress, message, signature } = req.body as {
+      walletAddress: string;
+      message: string;
+      signature: string;
+    };
+
+    if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid wallet signature",
+      });
+    }
+
+    const user = await prisma.user.findUnique({ where: { walletAddress } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { score: user.score },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/auth/register/signed:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Register with wallet signature proof
+ */
+export const registerWithSignature = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { walletAddress, message, signature } = req.body as {
+      walletAddress: string;
+      message: string;
+      signature: string;
+    };
+
+    if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid wallet signature",
+      });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { walletAddress } });
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        message: "User already registered",
+        data: { score: existing.score },
+      });
+    }
+
+    const scoringResult = await calculateStellarBase(walletAddress);
+    const { score, stellarData } = scoringResult;
+
+    if (!stellarData.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Stellar wallet address",
+        message: "The provided wallet address does not exist on Stellar network",
+      });
+    }
+
+    const profileTier = assignProfileTier(score);
+
+    await prisma.user.create({
+      data: {
+        walletAddress,
+        score,
+        profileTier,
+        stellarData: stellarData as object,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: { score },
     });
   } catch (error) {
     return next(error);
