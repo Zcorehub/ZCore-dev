@@ -5,11 +5,14 @@ import swaggerUi from "swagger-ui-express";
 import routes from "./routes";
 import { errorHandler } from "./middleware/error.middleware";
 import { swaggerSpec } from "./config/swagger";
+import { healthCheck } from "./controllers/health.controller";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.get("/health", healthCheck);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/api-docs.json", (_req, res) => {
