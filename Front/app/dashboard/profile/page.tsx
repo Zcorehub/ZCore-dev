@@ -10,12 +10,18 @@ import { Button } from "@/components/ui/button"
 import { apiClient } from "@/lib/api-client"
 import { AuthService } from "@/lib/auth"
 import { getStellarAccountUrl } from "@/lib/stellar"
+import { fetchHorizonAccountStats, fetchWalletAgeDays } from "@/lib/horizon-client"
 import { useWallet } from "@/providers/wallet-provider"
 import type { UserProfile } from "@/lib/types"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Check, Copy, ExternalLink, Loader2, XCircle } from "lucide-react"
 
 export default function ProfilePage() {
+  const [horizonStats, setHorizonStats] = useState<{
+    xlmBalance: number
+    trustlineCount: number
+    walletAgeDays: number | null
+  } | null>(null)
   const { address: connectedAddress, walletName } = useWallet()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,14 +36,26 @@ export default function ProfilePage() {
       if (!wallet) return
 
       setLoading(true)
-      const { data, error: apiError } = await apiClient.getProfile(wallet)
+      const [profileRes, accountStats, walletAge] = await Promise.all([
+        apiClient.getProfile(wallet),
+        fetchHorizonAccountStats(wallet),
+        fetchWalletAgeDays(wallet),
+      ])
       setLoading(false)
 
-      if (apiError) {
-        setError(apiError.message)
+      if (profileRes.error) {
+        setError(profileRes.error.message)
         return
       }
-      setProfile(data ?? null)
+      setProfile(profileRes.data ?? null)
+
+      if (accountStats) {
+        setHorizonStats({
+          xlmBalance: accountStats.xlmBalance,
+          trustlineCount: accountStats.trustlineCount,
+          walletAgeDays: walletAge,
+        })
+      }
     }
     load()
   }, [])
@@ -54,7 +72,7 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#080B14]">
         <DashboardNav />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto space-y-6">
@@ -128,7 +146,38 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                {horizonStats && (
+                  <Card className="card-glass border-white/[0.08] bg-transparent">
+                    <CardHeader>
+                      <CardTitle className="text-white">Stellar Horizon Data</CardTitle>
+                      <CardDescription className="text-white/50">
+                        Live on-chain metrics that feed your Stellar Base score
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-white/50">Wallet age</p>
+                        <p className="text-lg font-semibold text-white">
+                          {horizonStats.walletAgeDays ?? 0} days
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-white/50">XLM balance</p>
+                        <p className="text-lg font-semibold text-white">
+                          {horizonStats.xlmBalance.toFixed(2)} XLM
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-white/50">Trustlines</p>
+                        <p className="text-lg font-semibold text-white">
+                          {horizonStats.trustlineCount}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card className="card-glass border-white/[0.08] bg-transparent">
                   <CardHeader>
                     <CardTitle>ZCore Account</CardTitle>
                   </CardHeader>
