@@ -1,0 +1,10 @@
+# Generated API spec — served live at /api-docs.json when server runs
+api-docs.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
