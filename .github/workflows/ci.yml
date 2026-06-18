@@ -2,55 +2,67 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  build:
-    name: Build & Type Check
+  server:
+    name: Server
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: Server
+    env:
+      DATABASE_URL: mysql://root:zcore_dev@localhost:3306/zcore
+      ADMIN_SECRET: ci_admin_secret
+      STELLAR_NETWORK: testnet
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: Server/package-lock.json
 
       - name: Install dependencies
-        working-directory: Server
         run: npm ci
 
       - name: Generate Prisma client
-        working-directory: Server
         run: npx prisma generate
 
-      - name: Build TypeScript
-        working-directory: Server
+      - name: Build server
         run: npm run build
 
-  lint-frontend:
-    name: Frontend Type Check
+  front:
+    name: Front
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: Front
+    env:
+      NEXT_PUBLIC_API_BASE_URL: https://zcore-api.vercel.app
+      NEXT_PUBLIC_STELLAR_NETWORK: testnet
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: Front/package-lock.json
 
       - name: Install dependencies
-        working-directory: Front
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
-      - name: Type check
-        working-directory: Front
-        run: npx tsc --noEmit
+      - name: Build front
+        run: npm run build

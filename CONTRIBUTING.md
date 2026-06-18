@@ -71,6 +71,27 @@ npm run dev
 4. **Keep `txHash` uniqueness enforced.** Never remove the `@unique` constraint on `CreditEvent.txHash` — it is the primary duplicate-payment guard.
 5. **Test your changes against a real Stellar testnet wallet.** Set `STELLAR_NETWORK=testnet` in your `.env` for development.
 
+## CI expectations
+
+Pull requests run GitHub Actions checks for both services. Before opening a PR, run the same build path locally:
+
+```bash
+cd Server
+npm ci
+npx prisma generate
+npm run build
+```
+
+```bash
+cd Front
+npm ci --legacy-peer-deps
+NEXT_PUBLIC_API_BASE_URL=https://zcore-api.vercel.app \
+NEXT_PUBLIC_STELLAR_NETWORK=testnet \
+npm run build
+```
+
+The CI jobs use Node.js 20, dummy non-secret backend values, and only public `NEXT_PUBLIC_*` frontend variables. Do not add production secrets to workflow files.
+
 ## Adding a new partner platform
 
 1. Register the platform via `POST /api/platforms/register` (see Swagger).
