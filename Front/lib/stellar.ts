@@ -17,3 +17,12 @@ export function getStellarTxUrl(txHash: string): string {
       : "https://stellar.expert/explorer/testnet/tx"
   return `${base}/${txHash}`
 }
+
+export function getStellarAccountUrl(walletAddress: string): string {
+  const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet"
+  const base =
+    network === "mainnet"
+      ? "https://stellar.expert/explorer/public/account"
+      : "https://stellar.expert/explorer/testnet/account"
+  return `${base}/${walletAddress}`
+}
