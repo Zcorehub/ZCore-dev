@@ -24,5 +24,5 @@ export const validateLenderKey = async (
     });
   }
 
-  next();
+  return next();
 };
