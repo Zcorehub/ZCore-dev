@@ -7,6 +7,16 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"
 
+function formatErrorMessage(value: unknown, fallback = "An error occurred"): string {
+  if (typeof value === "string") return value
+  if (value instanceof Error) return value.message
+  if (Array.isArray(value)) return value.map((item) => formatErrorMessage(item)).join(", ")
+  if (value && typeof value === "object" && "message" in value) {
+    return formatErrorMessage((value as { message: unknown }).message, fallback)
+  }
+  return fallback
+}
+
 export interface SignedAuthPayload {
   walletAddress: string
   message: string
@@ -54,9 +64,9 @@ class ApiClient {
       if (!response.ok) {
         return {
           error: {
-            message: body.error || body.message || "An error occurred",
+            message: formatErrorMessage(body.error ?? body.message),
             statusCode: response.status,
-            error: body.error,
+            error: typeof body.error === "string" ? body.error : undefined,
           },
         }
       }

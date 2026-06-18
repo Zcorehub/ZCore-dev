@@ -62,10 +62,28 @@ export function getSelectedWalletName(): string | null {
   }
 }
 
+/** Normalize wallet signature to base64 for the API. */
+function toBase64Signature(value: unknown): string {
+  if (typeof value === "string") {
+    return value
+  }
+  if (value instanceof Uint8Array || Array.isArray(value)) {
+    return Buffer.from(value).toString("base64")
+  }
+  if (value && typeof value === "object" && "data" in value) {
+    return toBase64Signature((value as { data: unknown }).data)
+  }
+  throw new Error("Unsupported signature format from wallet")
+}
+
 export async function signAuthMessage(message: string): Promise<string> {
   initWalletKit()
-  const result = await StellarWalletsKit.signMessage(Buffer.from(message, "utf8"))
-  return Buffer.from(result.signature).toString("base64")
+
+  const { signedMessage } = await StellarWalletsKit.signMessage(message, {
+    networkPassphrase: getStellarNetworkPassphrase(),
+  })
+
+  return toBase64Signature(signedMessage)
 }
 
 export { StellarWalletsKit, KitEventType, FREIGHTER_ID, Networks }
