@@ -17,9 +17,11 @@ Runs at `http://localhost:3001`. The API backend runs at `http://localhost:3000`
 
 ## Features
 
-- **Register / Login** — Stellar wallet only (no email, no JWT)
-- **Credit Overview** — Score (0–850), tier badge, Stellar Base vs Partner Events breakdown
+- **Stellar Wallet Connect** — Freighter, xBull, and Albedo via `@creit.tech/stellar-wallets-kit`
+- **Register / Login** — Connect wallet, then register or sign in with ZCore API
+- **Credit Overview** — Score (0–850), tier badge, progress to next tier, Stellar Base vs Partner Events breakdown
 - **Credit History** — Verified events from Trustless Work, Blend Protocol, and Vaquita
+- **Wallet Profile** — Connected wallet details, copy address, explorer link
 
 ## Environment
 
