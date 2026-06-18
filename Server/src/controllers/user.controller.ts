@@ -131,6 +131,12 @@ export const requestScoring = async (
  *     tags: [Users]
  *     summary: Get a user's credit score with breakdown (for lenders)
  *     parameters:
+ *       - in: header
+ *         name: x-api-key
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Lender API key issued by ZCore
  *       - in: path
  *         name: wallet
  *         required: true
@@ -175,6 +181,8 @@ export const requestScoring = async (
  *                     lastUpdated:
  *                       type: string
  *                       format: date-time
+ *       401:
+ *         description: Missing or invalid lender API key
  *       404:
  *         description: User not found
  */
