@@ -8,6 +8,24 @@ ZCore is the credit layer that converts verified on-chain payment events — fro
 
 ---
 
+## Live
+
+| Service | URL |
+|---|---|
+| **DApp** | [dapp-zcore.vercel.app](https://dapp-zcore.vercel.app) |
+| **API** | [zcore-api.vercel.app](https://zcore-api.vercel.app) |
+| **API docs** | [zcore-api.vercel.app/api-docs](https://zcore-api.vercel.app/api-docs) |
+| **Landing** | [zcore-landing.vercel.app](https://zcore-landing.vercel.app) |
+
+### Deploy security
+
+- **Never commit** `.env` / `.env.local` — they are in `.gitignore` and `.vercelignore`.
+- **Front (dapp-zcore):** only `NEXT_PUBLIC_*` vars belong in Vercel (they are public in the browser bundle).
+- **API (zcore-api):** set `DATABASE_URL`, `ADMIN_SECRET`, `STELLAR_NETWORK` via `vercel env add` in the Vercel dashboard — **do not** deploy with a local `.env` file in the upload.
+- After the first API deploy, a local `.env` was accidentally included; that deployment was replaced. Production `ADMIN_SECRET` was rotated in Vercel. If you reused `dev_admin_secret_local` elsewhere, change it.
+
+---
+
 ## What ZCore does
 
 Partner platforms (Trustless Work, Blend Protocol, Vaquita) call `POST /api/events/report` whenever a user completes a credit-relevant payment. ZCore verifies the transaction on Stellar Horizon, calculates the score impact, and stores an immutable credit event. Lenders query `GET /api/user/{wallet}/score` to get the score and offer better conditions to creditworthy users.
@@ -137,63 +155,175 @@ GET /api/user/{wallet}/score
 
 ## Local setup
 
+ZCore runs as **two services**: the API (`Server/`, port 3000) and the DApp (`Front/`, port 3001).  
+The marketing landing page is a separate repo: [Zcore-Landing](https://github.com/Zcorehub/Zcore-Landing).
+
+### Inicio rápido (español)
+
+1. Instala **Node.js 20+** y **Docker Desktop** (debe estar abierto y en ejecución).
+2. Clona el repo y, desde la raíz, ejecuta el setup:
+
+   ```powershell
+   # Windows
+   npm run setup
+   ```
+
+   ```bash
+   # macOS / Linux
+   npm run setup:unix
+   ```
+
+3. Abre **dos terminales** y levanta los servicios:
+
+   ```bash
+   npm run dev:server   # API  → http://localhost:3000
+   npm run dev:front    # DApp → http://localhost:3001
+   ```
+
+4. Instala [Freighter](https://freighter.app) en **Testnet**, crea una wallet en [Stellar Laboratory](https://laboratory.stellar.org) y regístrate en [dapp-zcore.vercel.app/register](https://dapp-zcore.vercel.app/register) (producción) o http://localhost:3001/register (local).
+
+Los archivos de entorno se generan solos desde los ejemplos:
+
+| Archivo origen | Se copia a |
+|---|---|
+| `Server/.env.example` | `Server/.env` |
+| `Front/.env.example` | `Front/.env.local` |
+
+Si Docker no estaba corriendo durante el setup, arráncalo y ejecuta:
+
+```bash
+npm run db:up && npm run prisma:migrate && npm run prisma:seed
+```
+
+---
+
 ### Prerequisites
 
-- Node.js 20+
-- MySQL 8.0+
-- Git
+| Tool | Version | Notes |
+|---|---|---|
+| Node.js | 20+ | `node --version` |
+| Docker Desktop | any | MySQL runs in a container — no local MySQL install needed |
+| Freighter | browser ext. | [freighter.app](https://freighter.app) — wallet for testnet |
 
-### Steps
+> **Important:** Docker Desktop must be **running** before setup.
 
-```bash
-# 1. Clone and install
-git clone https://github.com/Zcorehub/ZCore-dev.git
-cd ZCore-dev/Server
-npm install
+---
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env: set DATABASE_URL, ADMIN_SECRET, and STELLAR_NETWORK
+### Quick start (recommended)
 
-# 3. Create MySQL database
-mysql -u root -p -e "CREATE DATABASE zcore;"
+From the repo root:
 
-# 4. Run migrations and generate Prisma client
-npx prisma generate
-npx prisma migrate dev --name init
-
-# 5. Start development server
-npm run dev
+```powershell
+npm run setup
 ```
 
-Server runs at `http://localhost:3000`.  
-Swagger UI at `http://localhost:3000/api-docs`.
+This automatically:
+1. Copies `Server/.env.example` → `Server/.env`
+2. Copies `Front/.env.example` → `Front/.env.local`
+3. Starts MySQL via Docker
+4. Installs dependencies (Server + Front)
+5. Runs Prisma migrations and seeds dev platform API keys
 
-### Register a partner platform (first-time setup)
+Then open **two terminals**:
 
-```bash
-curl -X POST http://localhost:3000/api/platforms/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "adminKey": "your_ADMIN_SECRET_from_env",
-    "platformId": "trustless-work",
-    "name": "Trustless Work",
-    "webhookUrl": "https://api.trustlesswork.com/webhooks/zcore"
-  }'
+```powershell
+# Terminal 1 — API
+npm run dev:server
+
+# Terminal 2 — DApp
+npm run dev:front
 ```
 
-The response contains the `apiKey` to share with the partner.
+| URL | What |
+|---|---|
+| [dapp-zcore.vercel.app](https://dapp-zcore.vercel.app) | **DApp (production)** — register, login, dashboard |
+| http://localhost:3001 | **DApp (local)** |
+| [zcore-api.vercel.app/api-docs](https://zcore-api.vercel.app/api-docs) | Swagger API docs (production) |
+| http://localhost:3000/api-docs | Swagger API docs (local) |
+| [zcore-api.vercel.app/health](https://zcore-api.vercel.app/health) | Health check (production) |
+| http://localhost:3000/health | Health check (local) |
 
-### Available scripts
+---
 
-```bash
-npm run dev              # Development server with hot reload
-npm run build            # Compile TypeScript
-npm start                # Run compiled server
-npm run prisma:generate  # Regenerate Prisma client after schema changes
-npm run prisma:migrate   # Apply new migrations
-npm run prisma:studio    # Visual DB browser
+### First use — register your wallet
+
+1. Install [Freighter](https://freighter.app) and switch to **Testnet**
+2. Create a testnet wallet at [Stellar Laboratory](https://laboratory.stellar.org)
+3. Open [dapp-zcore.vercel.app/register](https://dapp-zcore.vercel.app/register) (or http://localhost:3001/register locally)
+4. **Connect Stellar Wallet** → Freighter → sign the message (free, no XLM fee)
+5. Dashboard shows your Stellar Base score
+
+---
+
+### Environment files
+
+Copy the examples (done automatically by `npm run setup`):
+
+```powershell
+copy Server\.env.example Server\.env
+copy Front\.env.example Front\.env.local
 ```
+
+#### `Server/.env`
+
+| Variable | Default (dev) | Description |
+|---|---|---|
+| `DATABASE_URL` | `mysql://root:zcore_dev@localhost:3306/zcore` | MySQL (matches `docker-compose.yml`) |
+| `ADMIN_SECRET` | `dev_admin_secret_local` | Key for `POST /api/platforms/register` |
+| `STELLAR_NETWORK` | `testnet` | `testnet` or `mainnet` |
+| `PORT` | `3000` | API port |
+
+#### `Front/.env.local`
+
+| Variable | Default (dev) | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:3000` | Backend API URL |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | Network for explorer links |
+
+See `Server/.env.example` and `Front/.env.example` for optional Soroban variables.
+
+---
+
+### Dev platform API keys (from seed)
+
+| Platform | API Key |
+|---|---|
+| Trustless Work | `dev_tw_key_local` |
+| Blend Protocol | `dev_blend_key_local` |
+| Vaquita | `dev_vaquita_key_local` |
+
+Re-seed anytime: `npm run prisma:seed` (from repo root).
+
+---
+
+### Useful commands
+
+```powershell
+# From repo root
+npm run setup          # First-time setup
+npm run dev:server     # Start API  → :3000
+npm run dev:front      # Start DApp → :3001
+npm run db:up          # Start MySQL container
+npm run db:down        # Stop MySQL container
+npm run db:reset       # Wipe DB and restart MySQL
+npm run prisma:migrate # Apply migrations
+npm run prisma:seed    # Seed partner platforms
+
+# From Server/
+npm run prisma:studio  # Visual DB browser
+```
+
+---
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Docker pipe error | Open **Docker Desktop**, wait until running, then `npm run db:up` |
+| `npm install` fails in Front | `npm install --legacy-peer-deps` inside `Front/` |
+| Prisma can't connect | Run `npm run db:up`, wait 10s, then `npm run prisma:migrate` |
+| Wallet signature rejected | Approve the sign popup in Freighter |
+| Port in use | Change `PORT` in `Server/.env` or Front dev port in `Front/package.json` |
 
 ---
 

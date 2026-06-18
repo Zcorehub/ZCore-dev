@@ -6,6 +6,8 @@ ZCore is a portable credit scoring layer for Stellar DeFi, built in the open. We
 
 ZCore aggregates verified on-chain payment events from partner platforms (Trustless Work, Blend Protocol, Vaquita) into a portable credit score that any lending protocol on Stellar can query. If you're contributing, understanding [the Model B architecture](Docs/plan_modelo_b.md) first will save you time.
 
+**Live DApp:** [https://dapp-zcore.vercel.app](https://dapp-zcore.vercel.app)
+
 ## Ways to contribute
 
 - **Bug reports** — Open an issue with reproduction steps and expected vs. actual behavior.
