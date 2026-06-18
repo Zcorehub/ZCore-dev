@@ -5,8 +5,16 @@ import {
   calculateEventImpact,
   applyCounterpartyDecay,
   assignProfileTier,
+  calculateStellarBase,
 } from "../services/scoring.service";
-import { verifyTransaction } from "../services/stellar.service";
+import {
+  fetchStellarWalletData,
+  verifyTransaction,
+} from "../services/stellar.service";
+import { Platform, User } from "@prisma/client";
+
+const MIN_WALLET_AGE_DAYS = 30;
+const MONTHLY_SCORING_CAP = 10;
 
 /**
  * @swagger
@@ -14,6 +22,40 @@ import { verifyTransaction } from "../services/stellar.service";
  *   name: Events
  *   description: Credit event reporting from partner platforms
  */
+
+const recordZeroScoreEvent = async (
+  user: User,
+  platform: Platform,
+  payload: CreditEventPayload,
+  note: string,
+  res: Response
+) => {
+  const creditEvent = await prisma.creditEvent.create({
+    data: {
+      userId: user.id,
+      platformId: platform.id,
+      eventType: payload.eventType,
+      amount: payload.amount,
+      currency: payload.currency ?? "USDC",
+      txHash: payload.txHash,
+      counterpartyWallet: payload.counterpartyWallet ?? null,
+      scoreImpact: 0,
+      verifiedAt: new Date(),
+    },
+  });
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      eventId: creditEvent.id,
+      scoreImpact: 0,
+      newScore: user.score,
+      newTier: user.profileTier,
+      verified: true,
+      note,
+    },
+  });
+};
 
 /**
  * @swagger
@@ -160,7 +202,57 @@ export const reportCreditEvent = async (
       });
     }
 
-    // 5. Calculate counterparty decay (anti-Sybil)
+    // 5. Wallet age check (anti-Sybil)
+    const { stellarData } = await calculateStellarBase(payload.walletAddress);
+    if (stellarData.walletAge < MIN_WALLET_AGE_DAYS) {
+      return recordZeroScoreEvent(
+        user,
+        platform,
+        payload,
+        "Event recorded but score not updated: wallet must be at least 30 days old",
+        res
+      );
+    }
+
+    if (payload.counterpartyWallet) {
+      const counterpartyData = await fetchStellarWalletData(
+        payload.counterpartyWallet
+      );
+      if (counterpartyData.walletAge < MIN_WALLET_AGE_DAYS) {
+        return recordZeroScoreEvent(
+          user,
+          platform,
+          payload,
+          "Event recorded but score not updated: counterparty wallet must be at least 30 days old",
+          res
+        );
+      }
+    }
+
+    // 6. Monthly scoring cap (anti-Sybil)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const eventsThisMonth = await prisma.creditEvent.count({
+      where: {
+        userId: user.id,
+        scoreImpact: { gt: 0 },
+        createdAt: { gte: startOfMonth },
+      },
+    });
+
+    if (eventsThisMonth >= MONTHLY_SCORING_CAP) {
+      return recordZeroScoreEvent(
+        user,
+        platform,
+        payload,
+        "Event recorded but score not updated: monthly scoring cap reached",
+        res
+      );
+    }
+
+    // 7. Calculate counterparty decay (anti-Sybil)
     let decayFactor = 1.0;
     if (payload.counterpartyWallet) {
       const priorCount = await prisma.creditEvent.count({
@@ -172,7 +264,7 @@ export const reportCreditEvent = async (
       decayFactor = applyCounterpartyDecay(priorCount + 1);
     }
 
-    // 6. Calculate score impact
+    // 8. Calculate score impact
     const scoreImpact = calculateEventImpact(
       payload.eventType as CreditEventType,
       payload.amount,
@@ -182,7 +274,7 @@ export const reportCreditEvent = async (
     const newScore = Math.min(Math.max(user.score + scoreImpact, 0), 850);
     const newTier = assignProfileTier(newScore);
 
-    // 7. Atomic write: create event + update user score
+    // 9. Atomic write: create event + update user score
     const [creditEvent] = await prisma.$transaction([
       prisma.creditEvent.create({
         data: {
