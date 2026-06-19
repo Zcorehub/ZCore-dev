@@ -72,6 +72,8 @@ npm run dev
 5. **Test your changes against a real Stellar testnet wallet.** Set `STELLAR_NETWORK=testnet` in your `.env` for development.
 6. **Run tests before opening a PR.** From repo root: `npm test` (Server unit tests via Vitest). CI runs the same on every PR (#19).
 7. **Integration tests (optional locally):** With Docker MySQL running, set `DATABASE_URL` and run `npm run test:integration --prefix Server`.
+8. **Score recalculation (admin):** `npm run recalc:scores --prefix Server -- --dry-run` then `--apply` with valid `ADMIN_SECRET`.
+9. **Lender SDK:** See `packages/lender-sdk/README.md` for partner integrations (#48).
 
 ## CI
 
