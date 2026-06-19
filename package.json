@@ -15,6 +15,7 @@
     "prisma:migrate": "npm run prisma:generate --prefix Server && npx prisma migrate deploy --schema Server/prisma/schema.prisma",
     "prisma:seed": "npm run prisma:seed --prefix Server",
     "test:server": "npm test --prefix Server",
-    "test": "npm run test:server"
+    "test": "npm run test:server",
+    "build:lender-sdk": "npm run build --prefix packages/lender-sdk"
   }
 }

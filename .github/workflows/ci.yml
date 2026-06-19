@@ -87,6 +87,22 @@ jobs:
           JWT_SECRET: test_jwt_secret_ci
           ADMIN_SECRET: test_admin_ci
 
+  lender-sdk-build:
+    name: Lender SDK Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and build
+        working-directory: packages/lender-sdk
+        run: npm install && npm run build
+
   front-build:
     name: Frontend Build
     runs-on: ubuntu-latest

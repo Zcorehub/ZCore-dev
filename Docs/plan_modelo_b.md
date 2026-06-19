@@ -478,6 +478,21 @@ const valid = crypto.timingSafeEqual(
 
 Los fallos de webhook se registran en logs y **no** bloquean la ingesta del evento. Se reintenta una vez tras 5 s ante respuestas 5xx.
 
+#### SDK TypeScript para lenders (`@zcore/lender-sdk`)
+
+Partners pueden usar el paquete en `packages/lender-sdk/` en lugar de implementar HTTP a mano:
+
+```typescript
+import { ZCoreClient, verifyWebhookSignature } from "@zcore/lender-sdk";
+
+const client = new ZCoreClient({
+  baseUrl: "https://zcore-api.vercel.app",
+  apiKey: process.env.ZCORE_LENDER_KEY!,
+});
+
+const { score, tier, breakdown } = await client.getScore("G...");
+```
+
 ---
 
 ## 7. Lo que se mantiene del código existente
