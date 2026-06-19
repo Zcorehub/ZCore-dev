@@ -120,8 +120,14 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
         )}
 
         {error && (
-          <Alert variant="destructive" className="border-red-500/30 bg-red-500/10">
-            <XCircle className="h-4 w-4" />
+          <Alert
+            variant="destructive"
+            className="border-red-500/30 bg-red-500/10"
+            role="alert"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <XCircle className="h-4 w-4" aria-hidden="true" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}

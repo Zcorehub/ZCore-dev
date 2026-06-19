@@ -18,6 +18,12 @@ export function TierProgress({
   pointsToNext,
   className,
 }: TierProgressProps) {
+  const tierLabel =
+    currentTier in TIER_LABELS ? TIER_LABELS[currentTier as ProfileTier] : currentTier
+  const progressLabel = nextTier
+    ? `${score} points, ${tierLabel} tier, ${pointsToNext} points to reach ${TIER_LABELS[nextTier]}`
+    : `${score} points, ${tierLabel} tier, maximum tier reached`
+
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex justify-between text-xs">
@@ -29,6 +35,11 @@ export function TierProgress({
       </div>
       <div className="h-1.5 w-full overflow-hidden bg-white/[0.06]">
         <div
+          role="progressbar"
+          aria-label={progressLabel}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
           className="h-full bg-gradient-to-r from-neutral-600 via-white to-neutral-400 transition-all duration-500 shadow-[0_0_12px_rgba(255,255,255,0.15)]"
           style={{ width: `${progress}%` }}
         />

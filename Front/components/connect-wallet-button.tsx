@@ -18,7 +18,13 @@ export function ConnectWalletButton({
 
   if (!isReady) {
     return (
-      <Button variant={variant} className={className} disabled>
+      <Button
+        variant={variant}
+        className={className}
+        disabled
+        aria-label="Loading available Stellar wallets"
+        aria-busy="true"
+      >
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading wallets...
       </Button>
@@ -27,7 +33,13 @@ export function ConnectWalletButton({
 
   if (address) {
     return (
-      <Button variant="outline" className={className} disabled>
+      <Button
+        variant="outline"
+        className={className}
+        disabled
+        aria-label={`Connected Stellar wallet ${walletName ?? "wallet"} ${address}`}
+        title={`Connected wallet ${address}`}
+      >
         <Wallet className="mr-2 h-4 w-4" />
         {walletName ? `${walletName}: ` : ""}
         {truncateWallet(address)}
@@ -41,6 +53,8 @@ export function ConnectWalletButton({
       className={className}
       onClick={() => connect()}
       disabled={isConnecting}
+      aria-label={isConnecting ? "Opening Stellar wallet selector" : "Connect Stellar wallet"}
+      aria-busy={isConnecting}
     >
       {isConnecting ? (
         <>
