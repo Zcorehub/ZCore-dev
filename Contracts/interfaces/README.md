@@ -55,5 +55,6 @@ Topic: `("score_updated",)` — emitted on every `set_score` with previous and n
 ## Related
 
 - Implementation: `Contracts/score-registry/src/lib.rs`
+- Local test mock: `Contracts/mock-score-registry/src/lib.rs`
 - Server bindings: `Server/src/services/soroban.service.ts`
 - Issue #32 tracking
