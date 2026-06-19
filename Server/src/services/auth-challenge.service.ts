@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "crypto";
 import { CHALLENGE_HEADER, CHALLENGE_TTL_MS } from "../constants/auth.constants";
+import { logStructured, maskWallet } from "../utils/logger.util";
 
 /** SEP-53 prefix used by Freighter, xBull, Albedo, and Stellar Wallets Kit. */
 const SEP53_MESSAGE_PREFIX = Buffer.from("Stellar Signed Message:\n", "utf8");
@@ -78,6 +79,9 @@ export async function verifyWalletSignature(
 
     return keypair.verify(sep53MessageHash(message), signature);
   } catch {
+    logStructured("warn", "wallet_signature_verify_failed", {
+      wallet: maskWallet(walletAddress),
+    });
     return false;
   }
 }
