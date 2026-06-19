@@ -3,6 +3,7 @@ import {
   getProfile,
   getScore,
   getCreditHistory,
+  getUserBreakdown,
   requestScoring,
 } from "../controllers/user.controller";
 import {
@@ -28,6 +29,7 @@ router.post(
   attestScore
 );
 router.get("/:wallet/score", validateLenderKey, validateParams(WalletParamSchema), getScore);
+router.get("/:wallet/breakdown", validateParams(WalletParamSchema), getUserBreakdown);
 router.get("/:wallet/history", validateParams(WalletParamSchema), getCreditHistory);
 router.get("/:wallet/profile", validateParams(WalletParamSchema), getProfile);
 
