@@ -1,5 +1,7 @@
 # ZCore
 
+[![CI](https://github.com/Zcorehub/ZCore-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/Zcorehub/ZCore-dev/actions/workflows/ci.yml)
+
 **Portable credit scoring infrastructure for Stellar DeFi.**
 
 ZCore is the credit layer that converts verified on-chain payment events — from escrows, tandas, and DeFi loans — into a portable credit score that any lending protocol on Stellar can query.
