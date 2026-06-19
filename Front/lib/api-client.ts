@@ -36,7 +36,21 @@ export interface OnChainScore {
   tier: string
   tierCode: number
   updatedAt: number
+  validUntil?: number | null
   source: string
+}
+
+export interface ScoreBreakdown {
+  walletAddress: string
+  score: number
+  tier: string
+  breakdown: {
+    stellarBase: number
+    eventsScore: number
+    totalEvents: number
+    platforms: string[]
+  }
+  lastUpdated: string
 }
 
 class ApiClient {
@@ -119,6 +133,10 @@ class ApiClient {
 
   getProfile(wallet: string) {
     return this.request<UserProfile>(`/api/user/${wallet}/profile`)
+  }
+
+  getScoreBreakdown(wallet: string) {
+    return this.request<ScoreBreakdown>(`/api/user/${wallet}/breakdown`)
   }
 
   getHistory(wallet: string) {
