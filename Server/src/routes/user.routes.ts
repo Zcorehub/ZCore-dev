@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { lenderScoreRateLimit } from "../middleware/rate-limit.middleware";
 import {
   getProfile,
   getScore,
@@ -19,6 +20,7 @@ import {
 
 const router = Router();
 
+router.use("/:wallet/score", lenderScoreRateLimit);
 router.post("/request", validate(ScoringRequestSchema), requestScoring);
 router.get("/:wallet/on-chain", validateParams(WalletParamSchema), getOnChainScore);
 router.post(

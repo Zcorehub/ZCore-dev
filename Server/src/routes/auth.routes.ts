@@ -13,13 +13,32 @@ import {
   SignedAuthSchema,
   ChallengeRequestSchema,
 } from "../middleware/schemas";
+import {
+  authChallengeRateLimit,
+  signedAuthRateLimit,
+} from "../middleware/rate-limit.middleware";
 
 const router = Router();
 
-router.post("/challenge", validate(ChallengeRequestSchema), requestChallenge);
+router.post(
+  "/challenge",
+  authChallengeRateLimit,
+  validate(ChallengeRequestSchema),
+  requestChallenge
+);
 router.post("/register", validate(RegisterSchema), registerUser);
 router.post("/login", validate(LoginSchema), loginUser);
-router.post("/register/signed", validate(SignedAuthSchema), registerWithSignature);
-router.post("/login/signed", validate(SignedAuthSchema), loginWithSignature);
+router.post(
+  "/register/signed",
+  signedAuthRateLimit,
+  validate(SignedAuthSchema),
+  registerWithSignature
+);
+router.post(
+  "/login/signed",
+  signedAuthRateLimit,
+  validate(SignedAuthSchema),
+  loginWithSignature
+);
 
 export default router;
