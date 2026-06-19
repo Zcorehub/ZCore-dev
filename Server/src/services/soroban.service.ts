@@ -1,31 +1,25 @@
+import {
+  tierCodeToLabel,
+  tierLabelToCode,
+  TIER_CODE_TO_LABEL,
+  ZCORE_INTERFACE_VERSION,
+} from "../types/soroban/score-types";
+
 export interface OnChainScoreRecord {
   score: number;
   tier: number;
   updatedAt: number;
+  validUntil?: number;
 }
-
-const TIER_CODE_TO_LABEL: Record<number, string> = {
-  0: "REJECTED",
-  1: "C",
-  2: "B",
-  3: "A",
-};
 
 export function tierToCode(tier: string): number {
-  switch (tier) {
-    case "A":
-      return 3;
-    case "B":
-      return 2;
-    case "C":
-      return 1;
-    default:
-      return 0;
-  }
+  return tierLabelToCode(tier);
 }
 
-export function tierCodeToLabel(code: number): string {
-  return TIER_CODE_TO_LABEL[code] ?? "REJECTED";
+export { tierCodeToLabel };
+
+export function getInterfaceVersion(): number {
+  return ZCORE_INTERFACE_VERSION;
 }
 
 async function getNetworkPassphrase(): Promise<string> {
@@ -53,6 +47,7 @@ export function getContractConfig() {
     network: process.env.STELLAR_NETWORK === "mainnet" ? "mainnet" : "testnet",
     rpcUrl: getRpcUrl(),
     tierEncoding: TIER_CODE_TO_LABEL,
+    interfaceVersion: ZCORE_INTERFACE_VERSION,
   };
 }
 
@@ -100,17 +95,30 @@ export async function readOnChainScore(
       score: number;
       tier: number;
       updated_at: number;
+      valid_until?: number;
     };
 
     return {
       score: native.score,
       tier: native.tier,
       updatedAt: native.updated_at,
+      validUntil: native.valid_until,
     };
   } catch (error) {
     console.error("Failed to read on-chain score:", error);
     return null;
   }
+}
+
+const DEFAULT_TTL_BY_TIER: Record<string, number> = {
+  A: 30 * 24 * 60 * 60,
+  B: 21 * 24 * 60 * 60,
+  C: 14 * 24 * 60 * 60,
+  REJECTED: 7 * 24 * 60 * 60,
+};
+
+function ttlForTier(tier: string): number {
+  return DEFAULT_TTL_BY_TIER[tier] ?? DEFAULT_TTL_BY_TIER.REJECTED;
 }
 
 export async function attestScoreOnChain(
@@ -138,6 +146,7 @@ export async function attestScoreOnChain(
     const oracle = Keypair.fromSecret(oracleSecret);
     const contract = new Contract(contractId);
     const tierCode = tierToCode(tier);
+    const ttlSecs = ttlForTier(tier);
 
     const account = await server.getAccount(oracle.publicKey());
 
@@ -150,7 +159,8 @@ export async function attestScoreOnChain(
           "set_score",
           nativeToScVal(Address.fromString(walletAddress), { type: "address" }),
           nativeToScVal(score, { type: "u32" }),
-          nativeToScVal(tierCode, { type: "u32" })
+          nativeToScVal(tierCode, { type: "u32" }),
+          nativeToScVal(ttlSecs, { type: "u64" })
         )
       )
       .setTimeout(30)
@@ -168,6 +178,77 @@ export async function attestScoreOnChain(
     return { txHash: response.hash };
   } catch (error) {
     console.error("Failed to attest score on-chain:", error);
+    return null;
+  }
+}
+
+export async function attestScoreOnChainBatch(
+  entries: Array<{ wallet: string; score: number; tier: string }>
+): Promise<{ txHash: string } | null> {
+  const contractId = process.env.SCORE_REGISTRY_CONTRACT_ID;
+  const oracleSecret = process.env.ORACLE_SECRET_KEY;
+
+  if (!contractId || !oracleSecret || entries.length === 0) return null;
+  if (entries.length > 25) {
+    console.error("Batch attestation exceeds max size of 25");
+    return null;
+  }
+
+  try {
+    const stellar = await import("@stellar/stellar-sdk");
+    const {
+      Address,
+      Contract,
+      Keypair,
+      rpc,
+      TransactionBuilder,
+      nativeToScVal,
+      xdr,
+    } = stellar;
+
+    const server = new rpc.Server(getRpcUrl(), { allowHttp: true });
+    const oracle = Keypair.fromSecret(oracleSecret);
+    const contract = new Contract(contractId);
+
+    const wallets = entries.map((e) =>
+      nativeToScVal(Address.fromString(e.wallet), { type: "address" })
+    );
+    const scores = entries.map((e) => nativeToScVal(e.score, { type: "u32" }));
+    const tiers = entries.map((e) =>
+      nativeToScVal(tierToCode(e.tier), { type: "u32" })
+    );
+    const ttlSecs = nativeToScVal(ttlForTier(entries[0].tier), { type: "u64" });
+
+    const account = await server.getAccount(oracle.publicKey());
+
+    let tx = new TransactionBuilder(account, {
+      fee: String(100_000 + entries.length * 10_000),
+      networkPassphrase: await getNetworkPassphrase(),
+    })
+      .addOperation(
+        contract.call(
+          "set_scores_batch",
+          xdr.ScVal.scvVec(wallets),
+          xdr.ScVal.scvVec(scores),
+          xdr.ScVal.scvVec(tiers),
+          ttlSecs
+        )
+      )
+      .setTimeout(30)
+      .build();
+
+    tx = await server.prepareTransaction(tx);
+    tx.sign(oracle);
+
+    const response = await server.sendTransaction(tx);
+    if (response.status === "ERROR") {
+      console.error("Batch attestation tx error:", response);
+      return null;
+    }
+
+    return { txHash: response.hash };
+  } catch (error) {
+    console.error("Failed to batch attest scores on-chain:", error);
     return null;
   }
 }
