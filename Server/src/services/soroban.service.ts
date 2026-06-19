@@ -4,6 +4,7 @@ import {
   TIER_CODE_TO_LABEL,
   ZCORE_INTERFACE_VERSION,
 } from "../types/soroban/score-types";
+import { getEffectiveContractId } from "../test-helpers/mock-soroban";
 
 export interface OnChainScoreRecord {
   score: number;
@@ -39,7 +40,7 @@ function getRpcUrl(): string {
 }
 
 export function getContractConfig() {
-  const contractId = process.env.SCORE_REGISTRY_CONTRACT_ID;
+  const contractId = getEffectiveContractId();
   if (!contractId) return null;
 
   return {
@@ -54,7 +55,7 @@ export function getContractConfig() {
 export async function readOnChainScore(
   walletAddress: string
 ): Promise<OnChainScoreRecord | null> {
-  const contractId = process.env.SCORE_REGISTRY_CONTRACT_ID;
+  const contractId = getEffectiveContractId();
   if (!contractId) return null;
 
   try {
@@ -126,7 +127,7 @@ export async function attestScoreOnChain(
   score: number,
   tier: string
 ): Promise<{ txHash: string } | null> {
-  const contractId = process.env.SCORE_REGISTRY_CONTRACT_ID;
+  const contractId = getEffectiveContractId();
   const oracleSecret = process.env.ORACLE_SECRET_KEY;
 
   if (!contractId || !oracleSecret) return null;
@@ -185,7 +186,7 @@ export async function attestScoreOnChain(
 export async function attestScoreOnChainBatch(
   entries: Array<{ wallet: string; score: number; tier: string }>
 ): Promise<{ txHash: string } | null> {
-  const contractId = process.env.SCORE_REGISTRY_CONTRACT_ID;
+  const contractId = getEffectiveContractId();
   const oracleSecret = process.env.ORACLE_SECRET_KEY;
 
   if (!contractId || !oracleSecret || entries.length === 0) return null;
