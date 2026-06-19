@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    name: Build & Type Check
+  server-build:
+    name: Server Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -33,8 +33,12 @@ jobs:
         working-directory: Server
         run: npm run build
 
-  lint-frontend:
-    name: Frontend Type Check
+      - name: Run unit tests
+        working-directory: Server
+        run: npm test
+
+  front-build:
+    name: Frontend Build
     runs-on: ubuntu-latest
 
     steps:
@@ -49,8 +53,15 @@ jobs:
 
       - name: Install dependencies
         working-directory: Front
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Type check
         working-directory: Front
         run: npx tsc --noEmit
+
+      - name: Build Next.js
+        working-directory: Front
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://zcore-api.vercel.app
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
