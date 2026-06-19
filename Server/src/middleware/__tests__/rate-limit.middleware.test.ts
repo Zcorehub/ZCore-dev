@@ -1,12 +1,18 @@
 import { NextFunction, Request, Response } from "express";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { checkRateLimit } from "../../services/rate-limit.service";
 import {
-  createRateLimitMiddleware,
-  resetRateLimitWarningsForTests,
+  bodyApiKey,
+  clientIpKey,
+  createRateLimiter,
+  headerApiKey,
 } from "../rate-limit.middleware";
 
-const ORIGINAL_REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const ORIGINAL_REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+vi.mock("../../services/rate-limit.service", () => ({
+  checkRateLimit: vi.fn(),
+}));
+
+const mockedCheckRateLimit = vi.mocked(checkRateLimit);
 
 function mockRequest(overrides: Partial<Request> = {}) {
   return {
@@ -30,64 +36,41 @@ function mockResponse() {
 }
 
 function middleware(limit = 2) {
-  return createRateLimitMiddleware({
+  return createRateLimiter({
     name: "test-route",
     limit,
-    windowSeconds: 60,
-    identity: (req) => req.ip || "unknown",
+    windowSec: 60,
+    keyGenerator: (req) => req.ip || "unknown",
   });
 }
 
 describe("rate limit middleware", () => {
   beforeEach(() => {
-    resetRateLimitWarningsForTests();
-    delete process.env.UPSTASH_REDIS_REST_URL;
-    delete process.env.UPSTASH_REDIS_REST_TOKEN;
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mockedCheckRateLimit.mockReset();
   });
 
-  afterEach(() => {
-    if (ORIGINAL_REDIS_URL === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_URL;
-    } else {
-      process.env.UPSTASH_REDIS_REST_URL = ORIGINAL_REDIS_URL;
-    }
-
-    if (ORIGINAL_REDIS_TOKEN === undefined) {
-      delete process.env.UPSTASH_REDIS_REST_TOKEN;
-    } else {
-      process.env.UPSTASH_REDIS_REST_TOKEN = ORIGINAL_REDIS_TOKEN;
-    }
-
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  it("allows requests when Redis is not configured", async () => {
+  it("allows requests when the backing limiter allows the generated route key", async () => {
+    mockedCheckRateLimit.mockResolvedValue({ allowed: true });
     const req = mockRequest();
     const res = mockResponse();
     const next = vi.fn() as NextFunction;
 
     await middleware()(req, res, next);
 
+    expect(mockedCheckRateLimit).toHaveBeenCalledWith(
+      "test-route:203.0.113.10",
+      2,
+      60
+    );
     expect(next).toHaveBeenCalledOnce();
     expect(res.status).not.toHaveBeenCalled();
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("Rate limiting disabled")
-    );
   });
 
-  it("returns 429 with Retry-After when the Redis counter exceeds the limit", async () => {
-    process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.com";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "token";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => [{ result: 3 }, { result: 1 }],
-      })
-    );
-
+  it("returns 429 with Retry-After when the backing limiter rejects", async () => {
+    mockedCheckRateLimit.mockResolvedValue({
+      allowed: false,
+      retryAfterSec: 17,
+    });
     const req = mockRequest();
     const res = mockResponse();
     const next = vi.fn() as NextFunction;
@@ -95,30 +78,39 @@ describe("rate limit middleware", () => {
     await middleware(2)(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.setHeader).toHaveBeenCalledWith("Retry-After", expect.any(String));
+    expect(res.setHeader).toHaveBeenCalledWith("Retry-After", "17");
     expect(res.status).toHaveBeenCalledWith(429);
     expect(res.json).toHaveBeenCalledWith({
       success: false,
-      error: "Rate limit exceeded",
-      retryAfter: expect.any(Number),
+      error: "Too many requests. Please try again later.",
+      retryAfterSec: 17,
     });
   });
 
-  it("fails open when Redis returns an error", async () => {
-    process.env.UPSTASH_REDIS_REST_URL = "https://redis.example.com/";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "token";
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
-
+  it("forwards limiter errors to Express error handling", async () => {
+    const error = new Error("rate limit backend down");
+    mockedCheckRateLimit.mockRejectedValue(error);
     const req = mockRequest();
     const res = mockResponse();
     const next = vi.fn() as NextFunction;
 
     await middleware(2)(req, res, next);
 
-    expect(next).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledWith(error);
     expect(res.status).not.toHaveBeenCalled();
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("Rate limiting unavailable")
+  });
+
+  it("builds stable client and api-key identities", () => {
+    expect(
+      clientIpKey(
+        mockRequest({ headers: { "x-forwarded-for": "198.51.100.4, proxy" } })
+      )
+    ).toBe("198.51.100.4");
+    expect(bodyApiKey(mockRequest({ body: { apiKey: "body-key" } }))).toBe(
+      "body-key"
+    );
+    expect(headerApiKey(mockRequest({ headers: { "x-api-key": "header-key" } }))).toBe(
+      "header-key"
     );
   });
 });

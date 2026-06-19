@@ -8,21 +8,35 @@ import {
 } from "../controllers/auth.controller";
 import { validate } from "../middleware/validation.middleware";
 import {
+  createRateLimiter,
+  clientIpKey,
+} from "../middleware/rate-limit.middleware";
+import {
   LoginSchema,
   RegisterSchema,
   SignedAuthSchema,
   ChallengeRequestSchema,
 } from "../middleware/schemas";
-import {
-  authChallengeRateLimit,
-  signedAuthRateLimit,
-} from "../middleware/rate-limit.middleware";
 
 const router = Router();
 
+const challengeRateLimit = createRateLimiter({
+  name: "auth_challenge",
+  limit: 10,
+  windowSec: 60,
+  keyGenerator: clientIpKey,
+});
+
+const signedAuthRateLimit = createRateLimiter({
+  name: "auth_signed",
+  limit: 5,
+  windowSec: 60,
+  keyGenerator: clientIpKey,
+});
+
 router.post(
   "/challenge",
-  authChallengeRateLimit,
+  challengeRateLimit,
   validate(ChallengeRequestSchema),
   requestChallenge
 );

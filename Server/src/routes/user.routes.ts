@@ -1,36 +1,81 @@
 import { Router } from "express";
-import { lenderScoreRateLimit } from "../middleware/rate-limit.middleware";
 import {
   getProfile,
   getScore,
   getCreditHistory,
+  getScoreHistory,
+  getUserBreakdown,
   requestScoring,
 } from "../controllers/user.controller";
 import {
   attestScore,
   getOnChainScore,
 } from "../controllers/contracts.controller";
-import { validate, validateParams } from "../middleware/validation.middleware";
+import { validate, validateParams, validateQuery } from "../middleware/validation.middleware";
 import { validateLenderKey } from "../middleware/lender-auth.middleware";
+import { requireWalletSession } from "../middleware/session.middleware";
+import {
+  createRateLimiter,
+  headerApiKey,
+} from "../middleware/rate-limit.middleware";
 import {
   ScoringRequestSchema,
   SignedAuthSchema,
   WalletParamSchema,
+  PaginationQuerySchema,
+  ScoreHistoryQuerySchema,
 } from "../middleware/schemas";
 
 const router = Router();
 
-router.use("/:wallet/score", lenderScoreRateLimit);
+const lenderScoreRateLimit = createRateLimiter({
+  name: "lender_score",
+  limit: 60,
+  windowSec: 60,
+  keyGenerator: headerApiKey,
+});
+
 router.post("/request", validate(ScoringRequestSchema), requestScoring);
 router.get("/:wallet/on-chain", validateParams(WalletParamSchema), getOnChainScore);
 router.post(
   "/:wallet/attest",
   validateParams(WalletParamSchema),
+  requireWalletSession,
   validate(SignedAuthSchema),
   attestScore
 );
-router.get("/:wallet/score", validateLenderKey, validateParams(WalletParamSchema), getScore);
-router.get("/:wallet/history", validateParams(WalletParamSchema), getCreditHistory);
-router.get("/:wallet/profile", validateParams(WalletParamSchema), getProfile);
+router.get(
+  "/:wallet/score",
+  validateParams(WalletParamSchema),
+  lenderScoreRateLimit,
+  validateLenderKey,
+  getScore
+);
+router.get(
+  "/:wallet/breakdown",
+  validateParams(WalletParamSchema),
+  requireWalletSession,
+  getUserBreakdown
+);
+router.get(
+  "/:wallet/history",
+  validateParams(WalletParamSchema),
+  validateQuery(PaginationQuerySchema),
+  requireWalletSession,
+  getCreditHistory
+);
+router.get(
+  "/:wallet/score-history",
+  validateParams(WalletParamSchema),
+  validateQuery(ScoreHistoryQuerySchema),
+  requireWalletSession,
+  getScoreHistory
+);
+router.get(
+  "/:wallet/profile",
+  validateParams(WalletParamSchema),
+  requireWalletSession,
+  getProfile
+);
 
 export default router;
