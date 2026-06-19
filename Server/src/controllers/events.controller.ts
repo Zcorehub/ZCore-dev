@@ -28,8 +28,24 @@ const recordZeroScoreEvent = async (
   platform: Platform,
   payload: CreditEventPayload,
   note: string,
-  res: Response
+  res: Response,
+  dryRun = false
 ) => {
+  if (dryRun) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        dryRun: true,
+        wouldApply: false,
+        scoreImpact: 0,
+        projectedScore: user.score,
+        projectedTier: user.profileTier,
+        verified: true,
+        note,
+      },
+    });
+  }
+
   const creditEvent = await prisma.creditEvent.create({
     data: {
       userId: user.id,
@@ -158,6 +174,8 @@ export const reportCreditEvent = async (
 ) => {
   try {
     const payload = req.body as CreditEventPayload;
+    const dryRun =
+      req.query.dryRun === "true" || req.headers["x-zcore-dry-run"] === "true";
 
     // 1. Validate platform API key
     const platform = await prisma.platform.findUnique({
@@ -186,6 +204,16 @@ export const reportCreditEvent = async (
       where: { txHash: payload.txHash },
     });
     if (existing) {
+      if (dryRun) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            dryRun: true,
+            wouldApply: false,
+            reason: "Transaction already processed",
+          },
+        });
+      }
       return res.status(409).json({
         success: false,
         error: "This transaction has already been processed",
@@ -210,7 +238,8 @@ export const reportCreditEvent = async (
         platform,
         payload,
         "Event recorded but score not updated: wallet must be at least 30 days old",
-        res
+        res,
+        dryRun
       );
     }
 
@@ -224,7 +253,8 @@ export const reportCreditEvent = async (
           platform,
           payload,
           "Event recorded but score not updated: counterparty wallet must be at least 30 days old",
-          res
+          res,
+          dryRun
         );
       }
     }
@@ -248,7 +278,8 @@ export const reportCreditEvent = async (
         platform,
         payload,
         "Event recorded but score not updated: monthly scoring cap reached",
-        res
+        res,
+        dryRun
       );
     }
 
@@ -273,6 +304,20 @@ export const reportCreditEvent = async (
 
     const newScore = Math.min(Math.max(user.score + scoreImpact, 0), 850);
     const newTier = assignProfileTier(newScore);
+
+    if (dryRun) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          dryRun: true,
+          wouldApply: scoreImpact > 0,
+          scoreImpact,
+          projectedScore: newScore,
+          projectedTier: newTier,
+          verified: true,
+        },
+      });
+    }
 
     // 9. Atomic write: create event + update user score
     const [creditEvent] = await prisma.$transaction([
