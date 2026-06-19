@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiClient } from "@/lib/api-client"
+import { formatUserFacingError, mapApiError } from "@/lib/api-errors"
 import { AuthService } from "@/lib/auth"
 import { getStellarTxUrl, truncateWallet } from "@/lib/stellar"
 import { EVENT_TYPE_LABELS, type CreditEventItem } from "@/lib/types"
@@ -37,7 +38,7 @@ export default function HistoryPage() {
       setLoading(false)
 
       if (apiError) {
-        setError(apiError.message)
+        setError(formatUserFacingError(mapApiError(apiError.statusCode, apiError.message)))
         return
       }
 
@@ -99,7 +100,8 @@ export default function HistoryPage() {
                   </div>
                 ) : events.length === 0 ? (
                   <p className="text-xs text-white/40 py-8 text-center tracking-wide">
-                    No events recorded yet.
+                    No hay eventos registrados aún. Completa pagos verificados en plataformas
+                    partner (Trustless Work, Blend, Vaquita) para construir tu historial.
                   </p>
                 ) : (
                   <Table>
