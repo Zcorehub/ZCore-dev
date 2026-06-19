@@ -62,6 +62,7 @@ export const getOnChainScore = async (
         tier: tierCodeToLabel(record.tier),
         tierCode: record.tier,
         updatedAt: record.updatedAt,
+        validUntil: record.validUntil ?? null,
         source: "soroban",
       },
     });
