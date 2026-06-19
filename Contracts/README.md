@@ -11,9 +11,22 @@ Stores portable credit scores attested by the ZCore oracle. Lenders and DeFi pro
 | Function | Auth | Description |
 |---|---|---|
 | `init(admin)` | — | One-time setup with oracle admin address |
-| `set_score(wallet, score, tier)` | Oracle admin | Publish score (0–850) and tier (0–3) |
+| `interface_version()` | Public | Returns IZCoreScore interface version (currently 1) |
+| `set_score(wallet, score, tier, ttl_secs)` | Oracle admin | Publish score with optional TTL |
+| `set_scores_batch(wallets, scores, tiers, ttl_secs)` | Oracle admin | Batch attestation (max 25 wallets) |
 | `get_score(wallet)` | Public | Read attested score for any wallet |
+| `get_tier(wallet)` | Public | Read tier code only |
+| `is_attested(wallet)` | Public | True if wallet has attestation |
+| `is_score_fresh(wallet, max_age_secs)` | Public | Freshness check |
+| `get_score_if_fresh(wallet, max_age_secs)` | Public | Fresh score or REJECTED default |
+| `pause()` / `unpause()` | Oracle admin | Emergency pause (#27) |
 | `admin()` | Public | Returns oracle admin address |
+
+### Events
+
+| Topic | Payload |
+|---|---|
+| `score_updated` | wallet, score, tier, previous_score, previous_tier, updated_at |
 
 ### Tier encoding
 
@@ -23,6 +36,15 @@ Stores portable credit scores attested by the ZCore oracle. Lenders and DeFi pro
 | 1 | C |
 | 2 | B |
 | 3 | A |
+
+### Score freshness TTL (recommended)
+
+| Tier | TTL |
+|---|---|
+| A | 30 days |
+| B | 21 days |
+| C | 14 days |
+| REJECTED | 7 days |
 
 ### Build & deploy
 
@@ -49,3 +71,5 @@ stellar contract invoke \
 ```
 
 Set `SCORE_REGISTRY_CONTRACT_ID` and `ORACLE_SECRET_KEY` in Server `.env` to enable automatic attestation after score updates.
+
+See `Contracts/interfaces/README.md` for the standard IZCoreScore integration guide.
