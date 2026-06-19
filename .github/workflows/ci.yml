@@ -37,6 +37,56 @@ jobs:
         working-directory: Server
         run: npm test
 
+  server-integration:
+    name: Server Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: zcore_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: Server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Server
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: Server
+        run: npx prisma generate
+
+      - name: Apply migrations
+        working-directory: Server
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: mysql://root:test@127.0.0.1:3306/zcore_test
+
+      - name: Run integration tests
+        working-directory: Server
+        run: npm run test:integration
+        env:
+          DATABASE_URL: mysql://root:test@127.0.0.1:3306/zcore_test
+          JWT_SECRET: test_jwt_secret_ci
+          ADMIN_SECRET: test_admin_ci
+
   front-build:
     name: Frontend Build
     runs-on: ubuntu-latest

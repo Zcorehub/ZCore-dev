@@ -71,6 +71,7 @@ npm run dev
 4. **Keep `txHash` uniqueness enforced.** Never remove the `@unique` constraint on `CreditEvent.txHash` — it is the primary duplicate-payment guard.
 5. **Test your changes against a real Stellar testnet wallet.** Set `STELLAR_NETWORK=testnet` in your `.env` for development.
 6. **Run tests before opening a PR.** From repo root: `npm test` (Server unit tests via Vitest). CI runs the same on every PR (#19).
+7. **Integration tests (optional locally):** With Docker MySQL running, set `DATABASE_URL` and run `npm run test:integration --prefix Server`.
 
 ## CI
 
