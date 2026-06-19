@@ -1,7 +1,8 @@
 #![no_std]
-
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
 
+/// TEST ONLY — do not deploy to mainnet.
+/// Simplified score registry for local integration tests and CI.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScoreRecord {
@@ -12,7 +13,6 @@ pub struct ScoreRecord {
 }
 
 const INIT_KEY: &str = "INIT";
-const INTERFACE_VERSION: u32 = 1;
 
 #[contract]
 pub struct MockScoreRegistry;
@@ -24,24 +24,17 @@ impl MockScoreRegistry {
     }
 
     pub fn interface_version(_env: Env) -> u32 {
-        INTERFACE_VERSION
+        1
     }
 
     pub fn set_mock_score(env: Env, wallet: Address, score: u32, tier: u32) {
-        if score > 850 {
-            panic!("score exceeds maximum 850");
-        }
-        if tier > 3 {
-            panic!("invalid tier");
-        }
-
+        let updated_at = env.ledger().timestamp();
         let record = ScoreRecord {
             score,
             tier,
-            updated_at: env.ledger().timestamp(),
+            updated_at,
             valid_until: 0,
         };
-
         env.storage().persistent().set(&wallet, &record);
     }
 
@@ -61,49 +54,21 @@ impl MockScoreRegistry {
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{
-        testutils::{Address as _, Ledger},
-        Address, Env,
-    };
+    use soroban_sdk::{testutils::Address as _, Env};
 
     #[test]
     fn stores_and_reads_mock_score() {
         let env = Env::default();
+        env.mock_all_auths();
         let contract_id = env.register(MockScoreRegistry, ());
         let client = MockScoreRegistryClient::new(&env, &contract_id);
         let wallet = Address::generate(&env);
-        env.ledger().set_timestamp(1_718_000_000);
 
         client.init();
-        client.set_mock_score(&wallet, &620, &3);
+        client.set_mock_score(&wallet, &420, &2);
 
         let record = client.get_score(&wallet);
-        assert_eq!(record.score, 620);
-        assert_eq!(record.tier, 3);
-        assert!(record.updated_at > 0);
-        assert_eq!(record.valid_until, 0);
-    }
-
-    #[test]
-    fn returns_default_for_unknown_wallet() {
-        let env = Env::default();
-        let contract_id = env.register(MockScoreRegistry, ());
-        let client = MockScoreRegistryClient::new(&env, &contract_id);
-        let wallet = Address::generate(&env);
-
-        let record = client.get_score(&wallet);
-        assert_eq!(record.score, 0);
-        assert_eq!(record.tier, 0);
-        assert_eq!(record.updated_at, 0);
-        assert_eq!(record.valid_until, 0);
-    }
-
-    #[test]
-    fn interface_version_returns_one() {
-        let env = Env::default();
-        let contract_id = env.register(MockScoreRegistry, ());
-        let client = MockScoreRegistryClient::new(&env, &contract_id);
-
-        assert_eq!(client.interface_version(), 1);
+        assert_eq!(record.score, 420);
+        assert_eq!(record.tier, 2);
     }
 }

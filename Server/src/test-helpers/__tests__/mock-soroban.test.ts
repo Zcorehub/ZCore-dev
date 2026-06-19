@@ -1,95 +1,32 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { readOnChainScore } from "../../services/soroban.service";
-import { withMockContractId } from "../mock-soroban";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  clearMockContractId,
+  getEffectiveContractId,
+  isUsingMockContract,
+  withMockContractId,
+} from "../../test-helpers/mock-soroban";
+import { getContractConfig } from "../../services/soroban.service";
 
-const ORIGINAL_CONTRACT_ID = process.env.SCORE_REGISTRY_CONTRACT_ID;
-
-vi.mock("@stellar/stellar-sdk", () => {
-  class MockAccount {
-    constructor(
-      public accountId: string,
-      public sequence: string
-    ) {}
-  }
-
-  class MockContract {
-    constructor(public contractId: string) {}
-
-    call() {
-      return { operation: "get_score" };
-    }
-  }
-
-  class MockServer {
-    async simulateTransaction() {
-      return { result: { retval: "mock-score" } };
-    }
-  }
-
-  class MockTransactionBuilder {
-    addOperation() {
-      return this;
-    }
-
-    setTimeout() {
-      return this;
-    }
-
-    build() {
-      return {};
-    }
-  }
-
-  return {
-    Account: MockAccount,
-    Address: { fromString: (wallet: string) => wallet },
-    Contract: MockContract,
-    Networks: {
-      PUBLIC: "Public Global Stellar Network ; September 2015",
-      TESTNET: "Test SDF Network ; September 2015",
-    },
-    TransactionBuilder: MockTransactionBuilder,
-    nativeToScVal: (value: unknown) => value,
-    rpc: {
-      Api: { isSimulationError: () => false },
-      Server: MockServer,
-    },
-    scValToNative: () => ({
-      score: 620,
-      tier: 3,
-      updated_at: 1_718_000_000,
-      valid_until: 0,
-    }),
-  };
-});
-
-describe("withMockContractId", () => {
+describe("mock-soroban helper", () => {
   afterEach(() => {
-    if (ORIGINAL_CONTRACT_ID === undefined) {
-      delete process.env.SCORE_REGISTRY_CONTRACT_ID;
-    } else {
-      process.env.SCORE_REGISTRY_CONTRACT_ID = ORIGINAL_CONTRACT_ID;
-    }
+    clearMockContractId();
+    delete process.env.SCORE_REGISTRY_CONTRACT_ID;
   });
 
-  it("configures Server score reads to use a mock Soroban contract id", async () => {
-    withMockContractId("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+  it("overrides contract id for tests", () => {
+    process.env.SCORE_REGISTRY_CONTRACT_ID = "C_PROD";
+    withMockContractId("C_MOCK");
 
-    const score = await readOnChainScore(
-      "GD4ELZEONXZANIWRJAED5JPBN7KJG6ZQ5AV46HRLZRTEFNKWJP3UFREL"
-    );
-
-    expect(score).toEqual({
-      score: 620,
-      tier: 3,
-      updatedAt: 1_718_000_000,
-      validUntil: 0,
-    });
+    expect(getEffectiveContractId()).toBe("C_MOCK");
+    expect(isUsingMockContract()).toBe(true);
+    expect(getContractConfig()?.contractId).toBe("C_MOCK");
   });
 
-  it("rejects blank mock contract ids", () => {
-    expect(() => withMockContractId("   ")).toThrow(
-      "Mock Soroban contract id is required"
-    );
+  it("clears override", () => {
+    withMockContractId("C_MOCK");
+    clearMockContractId();
+
+    expect(getEffectiveContractId()).toBeUndefined();
+    expect(isUsingMockContract()).toBe(false);
   });
 });

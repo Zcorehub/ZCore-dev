@@ -1,39 +1,44 @@
-# Mock Score Registry
+# Mock Score Registry (TEST ONLY)
 
-TEST ONLY mock implementation of the `IZCoreScore` interface for local Server integration tests.
-
-Do not deploy this contract to mainnet. It has no admin authorization: any caller can set mock scores.
+Simplified Soroban contract for local integration tests. **Never deploy to mainnet.**
 
 ## Functions
 
-| Function | Auth | Description |
-|---|---|---|
-| `init()` | none | Marks the mock as initialized |
-| `set_mock_score(wallet, score, tier)` | none | Stores a mock score record for `wallet` |
-| `get_score(wallet)` | public | Reads the configured mock score or a default rejected record |
-| `interface_version()` | public | Returns `1` |
+| Function | Description |
+|----------|-------------|
+| `init()` | Marks contract initialized (no admin auth) |
+| `interface_version()` | Returns `1` |
+| `set_mock_score(wallet, score, tier)` | Anyone can set a mock score |
+| `get_score(wallet)` | Returns configured `ScoreRecord` |
 
-## Local build
+## Build
 
 ```bash
 cd Contracts/mock-score-registry
+cargo test
 stellar contract build
 ```
 
-## Local sandbox deploy
+## Local deploy (testnet/sandbox)
 
 ```bash
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/mock_score_registry.wasm \
-  --source alice \
-  --network local
-
-stellar contract invoke \
-  --id <MOCK_CONTRACT_ID> \
-  --source alice \
-  --network local \
-  -- init
+  --source-account YOUR_TESTNET_KEY \
+  --network testnet
 ```
 
-Set `SCORE_REGISTRY_CONTRACT_ID=<MOCK_CONTRACT_ID>` in `Server/.env` or call
-`withMockContractId("<MOCK_CONTRACT_ID>")` from Server tests.
+Use the returned contract ID in tests:
+
+```typescript
+import { withMockContractId, clearMockContractId } from "../test-helpers/mock-soroban";
+
+withMockContractId("C...");
+// run readOnChainScore(...)
+clearMockContractId();
+```
+
+## Related
+
+- Production registry: `Contracts/score-registry/`
+- Interface spec: `Contracts/interfaces/README.md`
