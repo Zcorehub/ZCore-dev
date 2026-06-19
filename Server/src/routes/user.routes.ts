@@ -12,6 +12,7 @@ import {
 } from "../controllers/contracts.controller";
 import { validate, validateParams } from "../middleware/validation.middleware";
 import { validateLenderKey } from "../middleware/lender-auth.middleware";
+import { requireWalletSession } from "../middleware/session.middleware";
 import {
   ScoringRequestSchema,
   SignedAuthSchema,
@@ -25,12 +26,28 @@ router.get("/:wallet/on-chain", validateParams(WalletParamSchema), getOnChainSco
 router.post(
   "/:wallet/attest",
   validateParams(WalletParamSchema),
+  requireWalletSession,
   validate(SignedAuthSchema),
   attestScore
 );
 router.get("/:wallet/score", validateLenderKey, validateParams(WalletParamSchema), getScore);
-router.get("/:wallet/breakdown", validateParams(WalletParamSchema), getUserBreakdown);
-router.get("/:wallet/history", validateParams(WalletParamSchema), getCreditHistory);
-router.get("/:wallet/profile", validateParams(WalletParamSchema), getProfile);
+router.get(
+  "/:wallet/breakdown",
+  validateParams(WalletParamSchema),
+  requireWalletSession,
+  getUserBreakdown
+);
+router.get(
+  "/:wallet/history",
+  validateParams(WalletParamSchema),
+  requireWalletSession,
+  getCreditHistory
+);
+router.get(
+  "/:wallet/profile",
+  validateParams(WalletParamSchema),
+  requireWalletSession,
+  getProfile
+);
 
 export default router;

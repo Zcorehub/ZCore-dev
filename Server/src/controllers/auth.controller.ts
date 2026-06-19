@@ -8,6 +8,7 @@ import {
   createChallenge,
   verifyWalletSignature,
 } from "../services/auth-challenge.service";
+import { createSessionToken } from "../services/session.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
 /**
@@ -317,7 +318,10 @@ export const loginWithSignature = async (
 
     return res.status(200).json({
       success: true,
-      data: { score: user.score },
+      data: {
+        score: user.score,
+        token: createSessionToken(walletAddress),
+      },
     });
   } catch (error) {
     return next(error);
@@ -355,7 +359,10 @@ export const registerWithSignature = async (
       return res.status(200).json({
         success: true,
         message: "User already registered",
-        data: { score: existing.score },
+        data: {
+          score: existing.score,
+          token: createSessionToken(walletAddress),
+        },
       });
     }
 
@@ -384,7 +391,10 @@ export const registerWithSignature = async (
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
-      data: { score },
+      data: {
+        score,
+        token: createSessionToken(walletAddress),
+      },
     });
   } catch (error) {
     return next(error);

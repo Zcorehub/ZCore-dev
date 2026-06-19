@@ -19,6 +19,14 @@ const options: swaggerJsdoc.Options = {
       },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Wallet session JWT from /api/auth/login/signed or register/signed",
+        },
+      },
       schemas: {
         User: {
           type: "object",
