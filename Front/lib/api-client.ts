@@ -60,6 +60,12 @@ class ApiClient {
     this.baseUrl = API_BASE_URL
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    if (typeof window === "undefined") return {}
+    const token = sessionStorage.getItem("zcore_token")
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -69,6 +75,7 @@ class ApiClient {
         ...options,
         headers: {
           "Content-Type": "application/json",
+          ...this.getAuthHeaders(),
           ...options.headers,
         },
       })
@@ -104,14 +111,14 @@ class ApiClient {
   }
 
   registerSigned(payload: SignedAuthPayload) {
-    return this.request<{ score: number }>("/api/auth/register/signed", {
+    return this.request<{ score: number; token: string }>("/api/auth/register/signed", {
       method: "POST",
       body: JSON.stringify(payload),
     })
   }
 
   loginSigned(payload: SignedAuthPayload) {
-    return this.request<{ score: number }>("/api/auth/login/signed", {
+    return this.request<{ score: number; token: string }>("/api/auth/login/signed", {
       method: "POST",
       body: JSON.stringify(payload),
     })

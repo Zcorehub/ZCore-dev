@@ -87,7 +87,10 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
     }
 
     if (result.data) {
-      AuthService.setSession({ walletAddress: address, score: result.data.score })
+      AuthService.setSession(
+        { walletAddress: address, score: result.data.score },
+        result.data.token
+      )
       router.push("/dashboard")
     }
   }
