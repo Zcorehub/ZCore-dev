@@ -73,6 +73,10 @@ npm run dev
 6. **Run tests before opening a PR.** From repo root: `npm test` (Server unit tests via Vitest). CI runs the same on every PR (#19).
 7. **Integration tests (optional locally):** With Docker MySQL running, set `DATABASE_URL` and run `npm run test:integration --prefix Server`.
 
+## Admin maintenance scripts
+
+Score rebuilds are handled by `npm run recalc:scores --prefix Server`. It defaults to `--dry-run`, prints wallet/old/new/delta rows, requires `ADMIN_SECRET`, and only updates `User.score` plus `User.profileTier` when `--apply` is passed. See `Docs/admin-runbook.md` for operator examples.
+
 ## CI
 
 GitHub Actions builds Server + Front and runs unit tests on every push to `main` and on pull requests. See `.github/workflows/ci.yml`.
