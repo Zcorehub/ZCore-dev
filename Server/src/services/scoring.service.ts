@@ -1,21 +1,16 @@
 import {
+  COUNTERPARTY_DECAY_TABLE,
+  EVENT_WEIGHTS,
+  PAYMENT_SCORE_DELTA,
+  PROFILE_TIER_THRESHOLDS,
+  SCORE_MAX,
+  STELLAR_BASE_MAX,
+} from "../constants/scoring.constants";
+import {
   fetchStellarWalletData,
   StellarWalletData,
 } from "./stellar.service";
 import { CreditEventType } from "../types";
-
-const SCORE_MAX = 850;
-const STELLAR_BASE_MAX = 150;
-
-const EVENT_WEIGHTS: Record<
-  CreditEventType,
-  { base: number; perUSDC: number; maxPerEvent: number }
-> = {
-  escrow_completed: { base: 15, perUSDC: 0.005, maxPerEvent: 60 },
-  loan_repaid: { base: 20, perUSDC: 0.008, maxPerEvent: 80 },
-  tanda_round_paid: { base: 10, perUSDC: 0.003, maxPerEvent: 30 },
-  tanda_cycle_completed: { base: 40, perUSDC: 0.01, maxPerEvent: 100 },
-};
 
 const calculateStellarBaseScore = (stellarData: StellarWalletData): number => {
   if (!stellarData.isValid) return 0;
@@ -62,9 +57,8 @@ export const calculateStellarBase = async (
 
 // Decay factor for repeated interactions with same counterparty (anti-Sybil)
 export const applyCounterpartyDecay = (interactionCount: number): number => {
-  const decayTable = [1.0, 0.7, 0.4, 0.1];
-  const idx = Math.min(interactionCount - 1, decayTable.length - 1);
-  return decayTable[idx] ?? 0.1;
+  const idx = Math.min(interactionCount - 1, COUNTERPARTY_DECAY_TABLE.length - 1);
+  return COUNTERPARTY_DECAY_TABLE[idx] ?? 0.1;
 };
 
 export const calculateEventImpact = (
@@ -83,9 +77,9 @@ export const calculateEventImpact = (
 export const assignProfileTier = (
   score: number
 ): "A" | "B" | "C" | "REJECTED" => {
-  if (score >= 600) return "A";
-  if (score >= 350) return "B";
-  if (score >= 100) return "C";
+  if (score >= PROFILE_TIER_THRESHOLDS.A) return "A";
+  if (score >= PROFILE_TIER_THRESHOLDS.B) return "B";
+  if (score >= PROFILE_TIER_THRESHOLDS.C) return "C";
   return "REJECTED";
 };
 
@@ -93,7 +87,7 @@ export const updateScoreFromPayment = (
   score: number,
   status: "paid" | "defaulted"
 ) => {
-  const delta = status === "paid" ? 10 : -30;
+  const delta = PAYMENT_SCORE_DELTA[status];
   const updatedScore = Math.min(Math.max(score + delta, 0), SCORE_MAX);
   return {
     score: updatedScore,
