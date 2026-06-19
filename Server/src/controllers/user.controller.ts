@@ -5,6 +5,10 @@ import {
   getUserProfile,
 } from "../services/profile.service";
 import { buildScoreBreakdown } from "../services/score-breakdown.service";
+import {
+  buildScoreHistoryTimeline,
+  mergeTimelineRows,
+} from "../services/score-history.service";
 import { LenderProfile, ScoringRequest } from "../types";
 
 /**
@@ -261,23 +265,31 @@ export const getCreditHistory = async (
 ) => {
   try {
     const { wallet } = req.params;
+    const limit = Number(req.query.limit ?? 20);
+    const offset = Number(req.query.offset ?? 0);
 
     const user = await prisma.user.findUnique({
       where: { walletAddress: wallet },
-      include: {
-        creditEvents: {
-          include: { platform: { select: { name: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-        },
-      },
+      select: { id: true },
     });
 
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    const events = user.creditEvents.map((e) => ({
+    const where = { userId: user.id };
+    const [total, creditEvents] = await Promise.all([
+      prisma.creditEvent.count({ where }),
+      prisma.creditEvent.findMany({
+        where,
+        include: { platform: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+      }),
+    ]);
+
+    const events = creditEvents.map((e) => ({
       eventId: e.id,
       platform: e.platform.name,
       eventType: e.eventType,
@@ -288,16 +300,87 @@ export const getCreditHistory = async (
       date: e.createdAt.toISOString().split("T")[0],
     }));
 
-    const totalPositive = events
-      .filter((e) => e.scoreImpact > 0)
-      .reduce((sum, e) => sum + e.scoreImpact, 0);
-    const totalNegative = events
-      .filter((e) => e.scoreImpact < 0)
-      .reduce((sum, e) => sum + e.scoreImpact, 0);
+    const [positiveAgg, negativeAgg] = await Promise.all([
+      prisma.creditEvent.aggregate({
+        where: { userId: user.id, scoreImpact: { gt: 0 } },
+        _sum: { scoreImpact: true },
+      }),
+      prisma.creditEvent.aggregate({
+        where: { userId: user.id, scoreImpact: { lt: 0 } },
+        _sum: { scoreImpact: true },
+      }),
+    ]);
+
+    const totalPositive = positiveAgg._sum.scoreImpact ?? 0;
+    const totalNegative = negativeAgg._sum.scoreImpact ?? 0;
 
     return res.status(200).json({
       success: true,
-      data: { events, totalPositive, totalNegative },
+      data: {
+        events,
+        totalPositive,
+        totalNegative,
+        pagination: { limit, offset, total },
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/user/{wallet}/score-history:
+ *   get:
+ *     tags: [Users]
+ *     summary: Paginated score change timeline
+ */
+export const getScoreHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { wallet } = req.params;
+    const limit = Number(req.query.limit ?? 20);
+    const offset = Number(req.query.offset ?? 0);
+    const from =
+      typeof req.query.from === "string" ? new Date(req.query.from) : undefined;
+    const to =
+      typeof req.query.to === "string" ? new Date(req.query.to) : undefined;
+
+    const user = await prisma.user.findUnique({
+      where: { walletAddress: wallet },
+      include: {
+        creditEvents: {
+          orderBy: { createdAt: "desc" },
+        },
+        payments: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    const rows = mergeTimelineRows(user.creditEvents, user.payments);
+    const { history, total } = buildScoreHistoryTimeline(user.score, rows, {
+      limit,
+      offset,
+      from,
+      to,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        walletAddress: wallet,
+        currentScore: user.score,
+        history,
+        pagination: { limit, offset, total },
+      },
     });
   } catch (error) {
     return next(error);

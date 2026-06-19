@@ -22,3 +22,14 @@ export const validateParams = (schema: AnyZodObject) => {
     }
   };
 };
+
+export const validateQuery = (schema: AnyZodObject) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      req.query = await schema.parseAsync(req.query);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};

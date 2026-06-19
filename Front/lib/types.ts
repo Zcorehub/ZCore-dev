@@ -34,6 +34,31 @@ export interface CreditHistory {
   events: CreditEventItem[]
   totalPositive: number
   totalNegative: number
+  pagination?: {
+    limit: number
+    offset: number
+    total: number
+  }
+}
+
+export interface ScoreHistoryEntry {
+  timestamp: string
+  scoreBefore: number
+  scoreAfter: number
+  delta: number
+  source: string
+  txHash: string | null
+}
+
+export interface ScoreHistory {
+  walletAddress: string
+  currentScore: number
+  history: ScoreHistoryEntry[]
+  pagination: {
+    limit: number
+    offset: number
+    total: number
+  }
 }
 
 export type ProfileTier = "A" | "B" | "C" | "REJECTED"

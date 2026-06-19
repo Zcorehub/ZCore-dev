@@ -54,6 +54,16 @@ export const WalletParamSchema = z.object({
   wallet: StellarWalletSchema,
 });
 
+export const PaginationQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const ScoreHistoryQuerySchema = PaginationQuerySchema.extend({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+
 export const CreditEventSchema = z.object({
   apiKey: z.string().min(10, "Invalid API key"),
   eventType: z.enum([

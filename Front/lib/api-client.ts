@@ -2,6 +2,7 @@ import type {
   ApiError,
   ApiResponse,
   CreditHistory,
+  ScoreHistory,
   UserProfile,
 } from "./types"
 
@@ -146,8 +147,22 @@ class ApiClient {
     return this.request<ScoreBreakdown>(`/api/user/${wallet}/breakdown`)
   }
 
-  getHistory(wallet: string) {
-    return this.request<CreditHistory>(`/api/user/${wallet}/history`)
+  getHistory(wallet: string, params: { limit?: number; offset?: number } = {}) {
+    const query = new URLSearchParams()
+    if (params.limit !== undefined) query.set("limit", String(params.limit))
+    if (params.offset !== undefined) query.set("offset", String(params.offset))
+    const suffix = query.size > 0 ? `?${query.toString()}` : ""
+    return this.request<CreditHistory>(`/api/user/${wallet}/history${suffix}`)
+  }
+
+  getScoreHistory(wallet: string, params: { limit?: number; offset?: number } = {}) {
+    const query = new URLSearchParams()
+    if (params.limit !== undefined) query.set("limit", String(params.limit))
+    if (params.offset !== undefined) query.set("offset", String(params.offset))
+    const suffix = query.size > 0 ? `?${query.toString()}` : ""
+    return this.request<ScoreHistory>(
+      `/api/user/${wallet}/score-history${suffix}`
+    )
   }
 
   getContractConfig() {

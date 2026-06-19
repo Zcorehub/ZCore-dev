@@ -3,6 +3,7 @@ import {
   getProfile,
   getScore,
   getCreditHistory,
+  getScoreHistory,
   getUserBreakdown,
   requestScoring,
 } from "../controllers/user.controller";
@@ -10,13 +11,15 @@ import {
   attestScore,
   getOnChainScore,
 } from "../controllers/contracts.controller";
-import { validate, validateParams } from "../middleware/validation.middleware";
+import { validate, validateParams, validateQuery } from "../middleware/validation.middleware";
 import { validateLenderKey } from "../middleware/lender-auth.middleware";
 import { requireWalletSession } from "../middleware/session.middleware";
 import {
   ScoringRequestSchema,
   SignedAuthSchema,
   WalletParamSchema,
+  PaginationQuerySchema,
+  ScoreHistoryQuerySchema,
 } from "../middleware/schemas";
 
 const router = Router();
@@ -40,8 +43,16 @@ router.get(
 router.get(
   "/:wallet/history",
   validateParams(WalletParamSchema),
+  validateQuery(PaginationQuerySchema),
   requireWalletSession,
   getCreditHistory
+);
+router.get(
+  "/:wallet/score-history",
+  validateParams(WalletParamSchema),
+  validateQuery(ScoreHistoryQuerySchema),
+  requireWalletSession,
+  getScoreHistory
 );
 router.get(
   "/:wallet/profile",
