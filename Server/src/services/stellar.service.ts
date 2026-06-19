@@ -1,3 +1,5 @@
+import { recordHorizonError } from "./metrics.service";
+
 interface StellarTransaction {
   id: string;
   created_at: string;
@@ -83,6 +85,7 @@ export const fetchStellarWalletData = async (
     );
 
     if (!accountResponse.ok) {
+      recordHorizonError("fetch_account");
       if (accountResponse.status === 404) {
         throw new Error("Wallet not found on Stellar network");
       }
@@ -95,6 +98,7 @@ export const fetchStellarWalletData = async (
       `${HORIZON_URL}/accounts/${walletAddress}/transactions?order=asc&limit=1`
     );
     if (!firstTxResponse.ok) {
+      recordHorizonError("fetch_first_transaction");
       throw new Error(
         `Error fetching first transaction: ${firstTxResponse.status}`
       );
@@ -106,6 +110,7 @@ export const fetchStellarWalletData = async (
       `${HORIZON_URL}/accounts/${walletAddress}/transactions?limit=200&order=desc`
     );
     if (!allTxResponse.ok) {
+      recordHorizonError("fetch_transactions");
       throw new Error(`Error fetching transactions: ${allTxResponse.status}`);
     }
     const allTxData = (await allTxResponse.json()) as StellarAccountResponse;
@@ -173,6 +178,7 @@ export const verifyTransaction = async (
     const response = await fetch(`${HORIZON_URL}/transactions/${txHash}`);
 
     if (!response.ok) {
+      recordHorizonError("verify_transaction");
       if (response.status === 404) {
         return {
           valid: false,
@@ -200,6 +206,7 @@ export const verifyTransaction = async (
       createdAt: tx.created_at,
     };
   } catch {
+    recordHorizonError("verify_transaction");
     return {
       valid: false,
       successful: false,

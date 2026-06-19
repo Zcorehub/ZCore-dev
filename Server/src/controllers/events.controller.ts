@@ -11,6 +11,7 @@ import {
   fetchStellarWalletData,
   verifyTransaction,
 } from "../services/stellar.service";
+import { recordCreditEvent } from "../services/metrics.service";
 import { Platform, User } from "@prisma/client";
 
 const MIN_WALLET_AGE_DAYS = 30;
@@ -43,6 +44,7 @@ const recordZeroScoreEvent = async (
       verifiedAt: new Date(),
     },
   });
+  recordCreditEvent(platform.name, payload.eventType);
 
   return res.status(200).json({
     success: true,
@@ -294,6 +296,7 @@ export const reportCreditEvent = async (
         data: { score: newScore, profileTier: newTier },
       }),
     ]);
+    recordCreditEvent(platform.name, payload.eventType);
 
     return res.status(200).json({
       success: true,

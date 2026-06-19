@@ -45,3 +45,28 @@ curl https://zcore-api.vercel.app/health
 curl https://zcore-api.vercel.app/health/ready
 curl https://dapp-zcore.vercel.app
 ```
+
+## Prometheus scrape config
+
+`GET /metrics` exposes Prometheus text format for API request counts,
+accepted credit events, Horizon failures, wallet-signature verification
+failures, and Prisma query duration observations. Labels are bounded to
+method, route template, status, platform, event type, operation, and auth route;
+wallet addresses and transaction hashes are not emitted as labels.
+
+Set `METRICS_SECRET` on the `zcore-api` Vercel project to require bearer-token
+authentication for the metrics endpoint. If it is set, scrapers must include
+the token:
+
+```yaml
+scrape_configs:
+  - job_name: zcore-api
+    metrics_path: /metrics
+    scheme: https
+    static_configs:
+      - targets:
+          - zcore-api.vercel.app
+    authorization:
+      type: Bearer
+      credentials: ${METRICS_SECRET}
+```
