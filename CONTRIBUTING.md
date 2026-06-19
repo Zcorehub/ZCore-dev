@@ -70,6 +70,11 @@ npm run dev
 3. **No secrets in code.** Use `.env` for all credentials. The `.env.example` is the single source of truth for required variables.
 4. **Keep `txHash` uniqueness enforced.** Never remove the `@unique` constraint on `CreditEvent.txHash` — it is the primary duplicate-payment guard.
 5. **Test your changes against a real Stellar testnet wallet.** Set `STELLAR_NETWORK=testnet` in your `.env` for development.
+6. **Run tests before opening a PR.** From repo root: `npm test` (Server unit tests via Vitest). CI runs the same on every PR (#19).
+
+## CI
+
+GitHub Actions builds Server + Front and runs unit tests on every push to `main` and on pull requests. See `.github/workflows/ci.yml`.
 
 ## Adding a new partner platform
 
