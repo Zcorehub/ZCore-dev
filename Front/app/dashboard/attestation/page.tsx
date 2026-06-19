@@ -8,6 +8,12 @@ import { TierBadge } from "@/components/tier-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiClient, type ContractConfig, type OnChainScore } from "@/lib/api-client"
+import { formatUserFacingError, mapApiError } from "@/lib/api-errors"
+import {
+  attestationStatusLabel,
+  getAttestationStatus,
+} from "@/lib/attestation-utils"
+import { formatUnixTimestamp } from "@/lib/format-score"
 import { AuthService } from "@/lib/auth"
 import { signAuthMessage } from "@/lib/wallet-kit"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -73,7 +79,10 @@ export default function AttestationPage() {
     setAttesting(false)
 
     if (result.error) {
-      setError(result.error.message)
+      setError(formatUserFacingError(mapApiError(
+        result.error.statusCode,
+        result.error.message
+      )))
       return
     }
 
@@ -82,6 +91,10 @@ export default function AttestationPage() {
       load()
     }
   }
+
+  const attestationStatus = onChain
+    ? getAttestationStatus(onChain.updatedAt, onChain.validUntil)
+    : "none"
 
   return (
     <AuthGuard>
@@ -177,6 +190,28 @@ export default function AttestationPage() {
                             ? new Date(onChain.updatedAt * 1000).toLocaleString()
                             : "—"}
                         </p>
+                        {onChain.validUntil ? (
+                          <p className="text-[10px] text-white/35 uppercase tracking-zk-wide">
+                            Valid until: {formatUnixTimestamp(onChain.validUntil)}
+                          </p>
+                        ) : null}
+                        {attestationStatus !== "none" && (
+                          <Alert
+                            className={
+                              attestationStatus === "expired"
+                                ? "border-red-500/30 bg-red-500/10"
+                                : attestationStatus === "expiring"
+                                  ? "border-amber-500/30 bg-amber-500/10"
+                                  : "border-white/20 bg-white/[0.04]"
+                            }
+                          >
+                            <AlertDescription className="text-xs">
+                              {attestationStatusLabel(attestationStatus)}
+                              {attestationStatus === "expired" &&
+                                " — Los lenders pueden rechazar tu tier on-chain."}
+                            </AlertDescription>
+                          </Alert>
+                        )}
                       </div>
                     ) : (
                       <p className="text-xs text-white/40 tracking-wide">
