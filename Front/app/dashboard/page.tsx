@@ -11,6 +11,7 @@ import { TierProgress } from "@/components/tier-progress"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiClient } from "@/lib/api-client"
+import { formatUserFacingError, mapApiError } from "@/lib/api-errors"
 import { AuthService } from "@/lib/auth"
 import { getStellarTxUrl } from "@/lib/stellar"
 import { EVENT_TYPE_LABELS, type CreditEventItem, type UserProfile } from "@/lib/types"
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [recentEvents, setRecentEvents] = useState<CreditEventItem[]>([])
+  const [stellarBase, setStellarBase] = useState(0)
   const [eventsScore, setEventsScore] = useState(0)
 
   const loadData = async () => {
@@ -32,15 +34,19 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
 
-    const [profileResult, historyResult] = await Promise.all([
+    const [profileResult, breakdownResult, historyResult] = await Promise.all([
       apiClient.getProfile(wallet),
+      apiClient.getScoreBreakdown(wallet),
       apiClient.getHistory(wallet),
     ])
 
     setLoading(false)
 
     if (profileResult.error) {
-      setError(profileResult.error.message)
+      setError(formatUserFacingError(mapApiError(
+        profileResult.error.statusCode,
+        profileResult.error.message
+      )))
       return
     }
 
@@ -49,11 +55,13 @@ export default function DashboardPage() {
       AuthService.updateScore(profileResult.data.score)
     }
 
+    if (breakdownResult.data) {
+      setStellarBase(breakdownResult.data.breakdown.stellarBase)
+      setEventsScore(breakdownResult.data.breakdown.eventsScore)
+    }
+
     if (historyResult.data) {
-      const events = historyResult.data.events
-      setRecentEvents(events.slice(0, 5))
-      const totalEventsScore = events.reduce((sum, e) => sum + e.scoreImpact, 0)
-      setEventsScore(totalEventsScore)
+      setRecentEvents(historyResult.data.events.slice(0, 5))
     }
   }
 
@@ -61,7 +69,6 @@ export default function DashboardPage() {
     loadData()
   }, [])
 
-  const stellarBase = profile ? Math.max(0, profile.score - eventsScore) : 0
   const tierProgress = profile ? getTierProgress(profile.score) : null
 
   return (
