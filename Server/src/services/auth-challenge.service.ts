@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "crypto";
+import { CHALLENGE_HEADER, CHALLENGE_TTL_MS } from "../constants/auth.constants";
 
-const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 /** SEP-53 prefix used by Freighter, xBull, Albedo, and Stellar Wallets Kit. */
 const SEP53_MESSAGE_PREFIX = Buffer.from("Stellar Signed Message:\n", "utf8");
 
@@ -13,7 +13,7 @@ export interface ChallengePayload {
 
 export function buildChallengeMessage(payload: ChallengePayload): string {
   return [
-    "ZCore Authentication",
+    CHALLENGE_HEADER,
     `Wallet: ${payload.walletAddress}`,
     `Nonce: ${payload.nonce}`,
     `Issued: ${payload.issuedAt}`,
@@ -42,7 +42,7 @@ export function validateChallengeMessage(
   walletAddress: string
 ): boolean {
   const lines = message.split("\n");
-  if (lines[0] !== "ZCore Authentication") return false;
+  if (lines[0] !== CHALLENGE_HEADER) return false;
 
   const walletLine = lines.find((l) => l.startsWith("Wallet: "));
   const expiresLine = lines.find((l) => l.startsWith("Expires: "));
