@@ -13,6 +13,7 @@ import { getMetrics } from "./controllers/metrics.controller";
 
 const app = express();
 
+app.set("trust proxy", true);
 app.use(requestLogMiddleware);
 app.use(metricsMiddleware);
 app.use(cors(getCorsOptions()));

@@ -32,6 +32,7 @@ ZCore uses two Vercel projects in this monorepo.
 - `ORACLE_SECRET_KEY` — optional
 - `JWT_SECRET` — wallet session tokens (#35)
 - `METRICS_SECRET` — optional bearer for `/metrics` (#38)
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — distributed rate limits (#42)
 
 ## Prometheus metrics (#38)
 

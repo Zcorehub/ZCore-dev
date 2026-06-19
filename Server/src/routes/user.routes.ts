@@ -15,6 +15,10 @@ import { validate, validateParams, validateQuery } from "../middleware/validatio
 import { validateLenderKey } from "../middleware/lender-auth.middleware";
 import { requireWalletSession } from "../middleware/session.middleware";
 import {
+  createRateLimiter,
+  headerApiKey,
+} from "../middleware/rate-limit.middleware";
+import {
   ScoringRequestSchema,
   SignedAuthSchema,
   WalletParamSchema,
@@ -23,6 +27,13 @@ import {
 } from "../middleware/schemas";
 
 const router = Router();
+
+const lenderScoreRateLimit = createRateLimiter({
+  name: "lender_score",
+  limit: 60,
+  windowSec: 60,
+  keyGenerator: headerApiKey,
+});
 
 router.post("/request", validate(ScoringRequestSchema), requestScoring);
 router.get("/:wallet/on-chain", validateParams(WalletParamSchema), getOnChainScore);
@@ -33,7 +44,13 @@ router.post(
   validate(SignedAuthSchema),
   attestScore
 );
-router.get("/:wallet/score", validateLenderKey, validateParams(WalletParamSchema), getScore);
+router.get(
+  "/:wallet/score",
+  validateParams(WalletParamSchema),
+  lenderScoreRateLimit,
+  validateLenderKey,
+  getScore
+);
 router.get(
   "/:wallet/breakdown",
   validateParams(WalletParamSchema),
