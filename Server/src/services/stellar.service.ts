@@ -1,3 +1,8 @@
+import {
+  getCachedWalletData,
+  setCachedWalletData,
+} from "./horizon-cache.service";
+
 interface StellarTransaction {
   id: string;
   created_at: string;
@@ -65,6 +70,9 @@ const HORIZON_URL =
 export const fetchStellarWalletData = async (
   walletAddress: string
 ): Promise<StellarWalletData> => {
+  const cached = getCachedWalletData(walletAddress);
+  if (cached) return cached;
+
   const defaultData: StellarWalletData = {
     walletAge: 0,
     totalTransactions: 0,
@@ -143,7 +151,7 @@ export const fetchStellarWalletData = async (
 
     const operationsCount = operationsData._embedded.records.length;
 
-    return {
+    const result: StellarWalletData = {
       walletAge,
       totalTransactions,
       successfulTransactions,
@@ -154,6 +162,9 @@ export const fetchStellarWalletData = async (
       isValid: true,
       firstTransactionDate: firstTx ? firstTx.created_at : null,
     };
+
+    setCachedWalletData(walletAddress, result);
+    return result;
   } catch (error) {
     console.error("Error fetching Stellar wallet data:", error);
     return { ...defaultData, isValid: false };
