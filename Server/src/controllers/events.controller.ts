@@ -12,6 +12,9 @@ import {
   verifyTransaction,
 } from "../services/stellar.service";
 import { Platform, User } from "@prisma/client";
+import {
+  dispatchScoreUpdatedWebhook,
+} from "../services/webhook.service";
 
 const MIN_WALLET_AGE_DAYS = 30;
 const MONTHLY_SCORING_CAP = 10;
@@ -339,6 +342,20 @@ export const reportCreditEvent = async (
         data: { score: newScore, profileTier: newTier },
       }),
     ]);
+
+    if (platform.webhookUrl && scoreImpact > 0) {
+      const secret = platform.webhookSecret ?? platform.apiKey;
+      void dispatchScoreUpdatedWebhook(platform.webhookUrl, secret, {
+        event: "score_updated",
+        walletAddress: payload.walletAddress,
+        previousScore: user.score,
+        newScore,
+        profileTier: newTier,
+        eventType: payload.eventType,
+        txHash: payload.txHash,
+        timestamp: new Date().toISOString(),
+      }).catch(() => undefined);
+    }
 
     return res.status(200).json({
       success: true,

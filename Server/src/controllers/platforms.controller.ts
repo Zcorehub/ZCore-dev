@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { prisma } from "../config/database";
 import { PlatformRegisterPayload } from "../types";
+import { generateWebhookSecret } from "../services/webhook.service";
 
 /**
  * @swagger
@@ -104,14 +105,25 @@ export const registerPlatform = async (
     }
 
     const apiKey = `${platformId.replace(/-/g, "_")}_${randomBytes(16).toString("hex")}`;
+    const webhookSecret = generateWebhookSecret();
 
     const platform = await prisma.platform.create({
-      data: { id: platformId, name, apiKey, webhookUrl: webhookUrl ?? null },
+      data: {
+        id: platformId,
+        name,
+        apiKey,
+        webhookUrl: webhookUrl ?? null,
+        webhookSecret,
+      },
     });
 
     return res.status(201).json({
       success: true,
-      data: { platformId: platform.id, apiKey: platform.apiKey },
+      data: {
+        platformId: platform.id,
+        apiKey: platform.apiKey,
+        webhookSecret: platform.webhookSecret,
+      },
     });
   } catch (error) {
     return next(error);

@@ -13,7 +13,11 @@ async function main() {
     await prisma.platform.upsert({
       where: { id: p.id },
       update: {},
-      create: { ...p, active: true },
+      create: {
+        ...p,
+        active: true,
+        webhookSecret: `${p.id}_webhook_secret_local`,
+      },
     });
     console.log(`Seeded platform: ${p.name} — apiKey: ${p.apiKey}`);
   }

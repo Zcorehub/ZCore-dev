@@ -23,13 +23,14 @@ model User {
 }
 
 model Platform {
-  id         String        @id
-  name       String
-  apiKey     String        @unique
-  webhookUrl String?
-  active     Boolean       @default(true)
-  createdAt  DateTime      @default(now())
-  events     CreditEvent[]
+  id            String        @id
+  name          String
+  apiKey        String        @unique
+  webhookUrl    String?
+  webhookSecret String?
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  events        CreditEvent[]
 
   @@index([apiKey])
 }
