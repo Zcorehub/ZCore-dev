@@ -4,6 +4,7 @@ import {
   evaluateEligibility,
   getUserProfile,
 } from "../services/profile.service";
+import { buildScoreBreakdown } from "../services/score-breakdown.service";
 import { LenderProfile, ScoringRequest } from "../types";
 
 /**
@@ -193,42 +194,42 @@ export const getScore = async (
 ) => {
   try {
     const { wallet } = req.params;
+    const breakdown = await buildScoreBreakdown(wallet);
 
-    const user = await prisma.user.findUnique({
-      where: { walletAddress: wallet },
-      include: {
-        creditEvents: {
-          select: { platformId: true, scoreImpact: true },
-        },
-      },
-    });
-
-    if (!user) {
+    if (!breakdown) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    const eventsScore = user.creditEvents.reduce(
-      (sum, e) => sum + e.scoreImpact,
-      0
-    );
-    const stellarBase = Math.max(0, user.score - eventsScore);
-    const platforms = [...new Set(user.creditEvents.map((e) => e.platformId))];
-
     return res.status(200).json({
       success: true,
-      data: {
-        walletAddress: wallet,
-        score: user.score,
-        tier: user.profileTier,
-        breakdown: {
-          stellarBase,
-          eventsScore,
-          totalEvents: user.creditEvents.length,
-          platforms,
-        },
-        lastUpdated: user.updatedAt,
-      },
+      data: breakdown,
     });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * @swagger
+ * /api/user/{wallet}/breakdown:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get score breakdown for the wallet owner (dapp)
+ */
+export const getUserBreakdown = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { wallet } = req.params;
+    const breakdown = await buildScoreBreakdown(wallet);
+
+    if (!breakdown) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    return res.status(200).json({ success: true, data: breakdown });
   } catch (error) {
     return next(error);
   }
