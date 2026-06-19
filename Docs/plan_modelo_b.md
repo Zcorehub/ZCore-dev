@@ -435,10 +435,48 @@ Para registrar nuevas plataformas partner y generar sus API keys.
   "success": true,
   "data": {
     "platformId": "trustless-work",
-    "apiKey": "tw_prod_generated_key_xyz"  // se le entrega al partner
+    "apiKey": "tw_prod_generated_key_xyz",
+    "webhookSecret": "whsec_..."  // guardar en el partner; no se vuelve a mostrar
   }
 }
 ```
+
+#### Webhook `score_updated` (ZCore → partner)
+
+Cuando un evento reportado cambia el score del usuario, ZCore hace `POST` a `platform.webhookUrl` (si está configurada).
+
+**Headers:**
+- `Content-Type: application/json`
+- `X-ZCore-Signature`: HMAC-SHA256 del body JSON usando `platform.webhookSecret`
+
+**Payload:**
+```json
+{
+  "event": "score_updated",
+  "walletAddress": "G...",
+  "previousScore": 380,
+  "newScore": 395,
+  "profileTier": "B",
+  "eventType": "escrow_completed",
+  "txHash": "...",
+  "timestamp": "2026-06-18T12:00:00Z"
+}
+```
+
+**Verificación en el partner (Node.js):**
+```javascript
+const crypto = require("crypto");
+const expected = crypto
+  .createHmac("sha256", process.env.ZCORE_WEBHOOK_SECRET)
+  .update(rawBody)
+  .digest("hex");
+const valid = crypto.timingSafeEqual(
+  Buffer.from(req.headers["x-zcore-signature"]),
+  Buffer.from(expected)
+);
+```
+
+Los fallos de webhook se registran en logs y **no** bloquean la ingesta del evento. Se reintenta una vez tras 5 s ante respuestas 5xx.
 
 ---
 
