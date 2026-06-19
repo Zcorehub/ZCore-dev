@@ -28,8 +28,13 @@ ZCore uses two Vercel projects in this monorepo.
 - `DATABASE_URL` — managed MySQL (#15)
 - `ADMIN_SECRET` — strong random secret
 - `STELLAR_NETWORK=testnet`
+- `CORS_ORIGINS=https://dapp-zcore.vercel.app,https://zcore-xi.vercel.app`
 - `SCORE_REGISTRY_CONTRACT_ID` — optional (#16)
 - `ORACLE_SECRET_KEY` — optional
+
+`CORS_ORIGINS` is a comma-separated allowlist of browser origins that may call
+the API with credentials. Keep `http://localhost:3001` in local `.env` files,
+and set only production dapp or partner origins in Vercel.
 
 ## Manual deploy (fallback)
 
