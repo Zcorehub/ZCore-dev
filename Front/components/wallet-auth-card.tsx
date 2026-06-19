@@ -9,8 +9,10 @@ import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { NetworkBadge } from "@/components/network-badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { apiClient } from "@/lib/api-client"
+import { formatUserFacingError, mapApiError } from "@/lib/api-errors"
 import { AuthService } from "@/lib/auth"
 import { truncateWallet } from "@/lib/stellar"
+import { assertWalletNetworkMatch, NetworkMismatchError } from "@/lib/wallet-network"
 import { signAuthMessage } from "@/lib/wallet-kit"
 import { useWallet } from "@/providers/wallet-provider"
 import { Loader2, Shield, XCircle } from "lucide-react"
@@ -33,10 +35,21 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
     setLoading(true)
     setError(null)
 
+    try {
+      await assertWalletNetworkMatch()
+    } catch (err) {
+      setLoading(false)
+      setError(err instanceof NetworkMismatchError ? err.message : "Network check failed")
+      return
+    }
+
     const challengeResult = await apiClient.requestChallenge(address)
     if (challengeResult.error || !challengeResult.data) {
       setLoading(false)
-      setError(challengeResult.error?.message ?? "Failed to get auth challenge")
+      setError(formatUserFacingError(mapApiError(
+        challengeResult.error?.statusCode ?? 500,
+        challengeResult.error?.message
+      )))
       return
     }
 
@@ -63,9 +76,12 @@ export function WalletAuthCard({ mode }: WalletAuthCardProps) {
 
     if (result.error) {
       if (isLogin && result.error.statusCode === 404) {
-        setError("Wallet not registered. Create an account first.")
+        setError(formatUserFacingError(mapApiError(404)))
       } else {
-        setError(result.error.message)
+        setError(formatUserFacingError(mapApiError(
+          result.error.statusCode,
+          result.error.message
+        )))
       }
       return
     }
