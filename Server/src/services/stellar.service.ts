@@ -2,6 +2,7 @@ import {
   getCachedWalletData,
   setCachedWalletData,
 } from "./horizon-cache.service";
+import { horizonErrorsTotal } from "./metrics.service";
 
 interface StellarTransaction {
   id: string;
@@ -166,6 +167,7 @@ export const fetchStellarWalletData = async (
     setCachedWalletData(walletAddress, result);
     return result;
   } catch (error) {
+    horizonErrorsTotal.inc();
     console.error("Error fetching Stellar wallet data:", error);
     return { ...defaultData, isValid: false };
   }

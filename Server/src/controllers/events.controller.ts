@@ -15,6 +15,7 @@ import { Platform, User } from "@prisma/client";
 import {
   dispatchScoreUpdatedWebhook,
 } from "../services/webhook.service";
+import { eventsReportedTotal } from "../services/metrics.service";
 
 const MIN_WALLET_AGE_DAYS = 30;
 const MONTHLY_SCORING_CAP = 10;
@@ -356,6 +357,11 @@ export const reportCreditEvent = async (
         timestamp: new Date().toISOString(),
       }).catch(() => undefined);
     }
+
+    eventsReportedTotal.inc({
+      platform: platform.id,
+      event_type: payload.eventType,
+    });
 
     return res.status(200).json({
       success: true,

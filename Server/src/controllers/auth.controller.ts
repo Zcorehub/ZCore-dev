@@ -9,6 +9,7 @@ import {
   verifyWalletSignature,
 } from "../services/auth-challenge.service";
 import { createSessionToken } from "../services/session.service";
+import { authVerifyFailuresTotal } from "../services/metrics.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
 /**
@@ -305,6 +306,7 @@ export const loginWithSignature = async (
     };
 
     if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      authVerifyFailuresTotal.inc();
       return res.status(401).json({
         success: false,
         error: "Invalid wallet signature",
@@ -348,6 +350,7 @@ export const registerWithSignature = async (
     };
 
     if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      authVerifyFailuresTotal.inc();
       return res.status(401).json({
         success: false,
         error: "Invalid wallet signature",

@@ -30,6 +30,25 @@ ZCore uses two Vercel projects in this monorepo.
 - `STELLAR_NETWORK=testnet`
 - `SCORE_REGISTRY_CONTRACT_ID` — optional (#16)
 - `ORACLE_SECRET_KEY` — optional
+- `JWT_SECRET` — wallet session tokens (#35)
+- `METRICS_SECRET` — optional bearer for `/metrics` (#38)
+
+## Prometheus metrics (#38)
+
+Scrape `GET https://zcore-api.vercel.app/metrics` from an external collector (Grafana Agent, Datadog, etc.). If `METRICS_SECRET` is set, send `Authorization: Bearer <secret>`.
+
+Example `prometheus.yml` scrape config:
+
+```yaml
+scrape_configs:
+  - job_name: zcore-api
+    metrics_path: /metrics
+    scheme: https
+    static_configs:
+      - targets: ["zcore-api.vercel.app"]
+    authorization:
+      credentials: YOUR_METRICS_SECRET
+```
 
 ## Manual deploy (fallback)
 
