@@ -7,6 +7,7 @@ import {
   tierCodeToLabel,
 } from "../services/soroban.service";
 import { verifyWalletSignature } from "../services/auth-challenge.service";
+import { recordAuthVerifyFailure } from "../services/metrics.service";
 
 /**
  * @swagger
@@ -99,6 +100,7 @@ export const attestScore = async (
     }
 
     if (!(await verifyWalletSignature(wallet, message, signature))) {
+      recordAuthVerifyFailure("/api/user/:wallet/attest");
       return res.status(401).json({
         success: false,
         error: "Invalid wallet signature",

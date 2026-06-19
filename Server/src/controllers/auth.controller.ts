@@ -8,6 +8,7 @@ import {
   createChallenge,
   verifyWalletSignature,
 } from "../services/auth-challenge.service";
+import { recordAuthVerifyFailure } from "../services/metrics.service";
 import { LoginRequest, RegisterRequest } from "../types";
 
 /**
@@ -304,6 +305,7 @@ export const loginWithSignature = async (
     };
 
     if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      recordAuthVerifyFailure("/api/auth/login/signed");
       return res.status(401).json({
         success: false,
         error: "Invalid wallet signature",
@@ -344,6 +346,7 @@ export const registerWithSignature = async (
     };
 
     if (!(await verifyWalletSignature(walletAddress, message, signature))) {
+      recordAuthVerifyFailure("/api/auth/register/signed");
       return res.status(401).json({
         success: false,
         error: "Invalid wallet signature",
