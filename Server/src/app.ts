@@ -4,12 +4,15 @@ import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import routes from "./routes";
 import { errorHandler } from "./middleware/error.middleware";
+import { requestLogMiddleware } from "./middleware/request-log.middleware";
 import { swaggerSpec } from "./config/swagger";
+import { getCorsOptions } from "./config/cors.config";
 import { healthCheck, livenessCheck, readinessCheck } from "./controllers/health.controller";
 
 const app = express();
 
-app.use(cors());
+app.use(requestLogMiddleware);
+app.use(cors(getCorsOptions()));
 app.use(express.json());
 
 app.get("/health", healthCheck);
