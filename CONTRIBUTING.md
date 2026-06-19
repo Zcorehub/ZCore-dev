@@ -74,6 +74,7 @@ npm run dev
 7. **Integration tests (optional locally):** With Docker MySQL running, set `DATABASE_URL` and run `npm run test:integration --prefix Server`.
 8. **Score recalculation (admin):** `npm run recalc:scores --prefix Server -- --dry-run` then `--apply` with valid `ADMIN_SECRET`.
 9. **Lender SDK:** See `packages/lender-sdk/README.md` for partner integrations (#48).
+10. **Admin dashboard:** Open `/admin` in the dapp (not linked in nav) with `ADMIN_SECRET`.
 
 ## CI
 
