@@ -51,6 +51,36 @@ scrape_configs:
       credentials: YOUR_METRICS_SECRET
 ```
 
+## Oracle admin rotation
+
+Use this runbook when `ORACLE_SECRET_KEY` is compromised or when ownership moves
+to a new operator key. Never commit either secret key.
+
+1. Generate and store the replacement key outside git.
+2. Pause the score registry with the current oracle admin key.
+3. Propose the new admin from `Server/`:
+
+```bash
+ORACLE_SECRET_KEY=<current secret> \
+SCORE_REGISTRY_CONTRACT_ID=<contract id> \
+STELLAR_NETWORK=testnet \
+npx ts-node scripts/rotate-oracle-admin.ts propose <new admin public key> --send
+```
+
+4. Accept with the new oracle secret:
+
+```bash
+NEW_ORACLE_SECRET_KEY=<new secret> \
+SCORE_REGISTRY_CONTRACT_ID=<contract id> \
+STELLAR_NETWORK=testnet \
+npx ts-node scripts/rotate-oracle-admin.ts accept --send
+```
+
+5. Update Vercel `ORACLE_SECRET_KEY` to the new secret, redeploy `zcore-api`,
+   then unpause the score registry with the new admin key.
+
+Omit `--send` to prepare and inspect the transaction XDR without broadcasting.
+
 ## Manual deploy (fallback)
 
 ```bash

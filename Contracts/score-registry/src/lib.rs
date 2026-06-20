@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Vec};
 
 /// On-chain credit score attestation for a Stellar wallet.
 /// Written by the ZCore oracle; readable by any lender or protocol.
@@ -12,18 +12,8 @@ pub struct ScoreRecord {
     pub valid_until: u64,
 }
 
-#[contractevent]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ScoreUpdated {
-    pub wallet: Address,
-    pub score: u32,
-    pub tier: u32,
-    pub previous_score: u32,
-    pub previous_tier: u32,
-    pub updated_at: u64,
-}
-
 const ADMIN_KEY: &str = "ADMIN";
+const PENDING_ADMIN_KEY: &str = "PENDING_ADMIN";
 const PAUSED_KEY: &str = "PAUSED";
 const MAX_BATCH_SIZE: u32 = 25;
 const INTERFACE_VERSION: u32 = 1;
@@ -55,6 +45,49 @@ impl ScoreRegistry {
             .expect("contract not initialized")
     }
 
+    /// Returns the pending oracle admin, if a transfer has been proposed.
+    pub fn pending_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&PENDING_ADMIN_KEY)
+    }
+
+    /// Current admin proposes the next oracle admin.
+    ///
+    /// Rotation is only allowed while paused so score writes cannot continue
+    /// under a partially rotated operational key.
+    pub fn propose_admin(env: Env, new_admin: Address) {
+        let admin = Self::admin(env.clone());
+        admin.require_auth();
+
+        if !Self::is_paused(env.clone()) {
+            panic!("contract must be paused");
+        }
+        if new_admin == admin {
+            panic!("new admin must differ");
+        }
+
+        env.storage().instance().set(&PENDING_ADMIN_KEY, &new_admin);
+
+        env.events()
+            .publish((symbol_short!("adm_prop"), admin), new_admin);
+    }
+
+    /// Pending admin accepts control of the oracle registry.
+    pub fn accept_admin(env: Env) {
+        let pending_admin: Address = env
+            .storage()
+            .instance()
+            .get(&PENDING_ADMIN_KEY)
+            .expect("no pending admin");
+        pending_admin.require_auth();
+
+        let previous_admin = Self::admin(env.clone());
+        env.storage().instance().set(&ADMIN_KEY, &pending_admin);
+        env.storage().instance().remove(&PENDING_ADMIN_KEY);
+
+        env.events()
+            .publish((symbol_short!("adm_xfer"), previous_admin), pending_admin);
+    }
+
     /// Emergency pause — blocks all score writes.
     pub fn pause(env: Env) {
         let admin: Address = env
@@ -79,10 +112,7 @@ impl ScoreRegistry {
 
     /// Returns whether the contract is paused.
     pub fn is_paused(env: Env) -> bool {
-        env.storage()
-            .instance()
-            .get(&PAUSED_KEY)
-            .unwrap_or(false)
+        env.storage().instance().get(&PAUSED_KEY).unwrap_or(false)
     }
 
     /// Oracle-only: publish or update a wallet's verified score.
@@ -91,35 +121,7 @@ impl ScoreRegistry {
     pub fn set_score(env: Env, wallet: Address, score: u32, tier: u32, ttl_secs: u64) {
         Self::require_not_paused(&env);
         Self::require_admin_auth(&env);
-        Self::validate_score_tier(score, tier);
-
-        let updated_at = env.ledger().timestamp();
-        let valid_until = if ttl_secs > 0 {
-            updated_at.saturating_add(ttl_secs)
-        } else {
-            0
-        };
-
-        let previous = Self::get_score(env.clone(), wallet.clone());
-
-        let record = ScoreRecord {
-            score,
-            tier,
-            updated_at,
-            valid_until,
-        };
-
-        env.storage().persistent().set(&wallet, &record);
-
-        ScoreUpdated {
-            wallet: wallet.clone(),
-            score,
-            tier,
-            previous_score: previous.score,
-            previous_tier: previous.tier,
-            updated_at,
-        }
-        .publish(&env);
+        Self::write_score(env, wallet, score, tier, ttl_secs);
     }
 
     /// Oracle-only: batch attestation for up to 25 wallets per transaction.
@@ -136,7 +138,7 @@ impl ScoreRegistry {
         if wallets.len() != scores.len() || wallets.len() != tiers.len() {
             panic!("length mismatch");
         }
-        if wallets.len() > MAX_BATCH_SIZE as usize {
+        if wallets.len() > MAX_BATCH_SIZE {
             panic!("batch too large");
         }
 
@@ -144,7 +146,7 @@ impl ScoreRegistry {
             let wallet = wallets.get(i).unwrap();
             let score = scores.get(i).unwrap();
             let tier = tiers.get(i).unwrap();
-            Self::set_score(env.clone(), wallet, score, tier, ttl_secs);
+            Self::write_score(env.clone(), wallet, score, tier, ttl_secs);
         }
     }
 
@@ -224,17 +226,50 @@ impl ScoreRegistry {
             panic!("invalid tier");
         }
     }
+
+    fn write_score(env: Env, wallet: Address, score: u32, tier: u32, ttl_secs: u64) {
+        Self::validate_score_tier(score, tier);
+
+        let updated_at = env.ledger().timestamp();
+        let valid_until = if ttl_secs > 0 {
+            updated_at.saturating_add(ttl_secs)
+        } else {
+            0
+        };
+
+        let previous = Self::get_score(env.clone(), wallet.clone());
+
+        let record = ScoreRecord {
+            score,
+            tier,
+            updated_at,
+            valid_until,
+        };
+
+        env.storage().persistent().set(&wallet, &record);
+
+        env.events().publish(
+            (symbol_short!("score_upd"), wallet.clone()),
+            (score, tier, previous.score, previous.tier, updated_at),
+        );
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Address, Env};
+    use soroban_sdk::{
+        testutils::{Address as _, Ledger},
+        Address, Env,
+    };
 
     #[test]
     fn set_and_get_score() {
         let env = Env::default();
         env.mock_all_auths();
+        env.ledger().with_mut(|ledger| {
+            ledger.timestamp = 1_718_000_000;
+        });
 
         let contract_id = env.register(ScoreRegistry, ());
         let client = ScoreRegistryClient::new(&env, &contract_id);
@@ -309,6 +344,63 @@ mod test {
         assert!(client.is_paused());
 
         let result = client.try_set_score(&wallet, &100u32, &1u32, &0u64);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn admin_rotation_two_step_updates_admin() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(ScoreRegistry, ());
+        let client = ScoreRegistryClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let new_admin = Address::generate(&env);
+
+        client.init(&admin);
+        client.pause();
+        client.propose_admin(&new_admin);
+
+        assert_eq!(client.pending_admin(), Some(new_admin.clone()));
+
+        client.accept_admin();
+
+        assert_eq!(client.admin(), new_admin);
+        assert_eq!(client.pending_admin(), None);
+        assert!(client.is_paused());
+    }
+
+    #[test]
+    fn propose_admin_requires_current_admin_auth() {
+        let env = Env::default();
+
+        let contract_id = env.register(ScoreRegistry, ());
+        let client = ScoreRegistryClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let new_admin = Address::generate(&env);
+
+        client.init(&admin);
+
+        let result = client.try_propose_admin(&new_admin);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn propose_admin_requires_pause() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        let contract_id = env.register(ScoreRegistry, ());
+        let client = ScoreRegistryClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        let new_admin = Address::generate(&env);
+
+        client.init(&admin);
+
+        let result = client.try_propose_admin(&new_admin);
         assert!(result.is_err());
     }
 }
