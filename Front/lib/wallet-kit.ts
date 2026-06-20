@@ -12,7 +12,7 @@ import { xBullModule } from "@creit.tech/stellar-wallets-kit/modules/xbull"
 
 let initialized = false
 
-export function getStellarNetworkPassphrase(): string {
+export function getStellarNetworkPassphrase(): Networks {
   return process.env.NEXT_PUBLIC_STELLAR_NETWORK === "mainnet"
     ? Networks.PUBLIC
     : Networks.TESTNET

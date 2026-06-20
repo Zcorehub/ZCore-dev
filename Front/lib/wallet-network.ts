@@ -24,7 +24,7 @@ export async function assertWalletNetworkMatch(): Promise<void> {
     const connected = await freighter.isConnected()
     if (!connected) return
 
-    const network = await freighter.getNetwork()
+    const { network } = await freighter.getNetwork()
     const walletNetwork = network === "PUBLIC" ? "mainnet" : "testnet"
     const expectedNetwork = getStellarNetworkLabel()
 

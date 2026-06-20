@@ -15,28 +15,6 @@ vi.mock("../services/auth-challenge.service", async (importOriginal) => {
   };
 });
 
-vi.mock("../services/scoring.service", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../services/scoring.service")>();
-  return {
-    ...actual,
-    calculateStellarBase: vi.fn().mockResolvedValue({
-      score: 120,
-      stellarData: {
-        walletAge: 365,
-        totalTransactions: 10,
-        successfulTransactions: 10,
-        averageBalance: 50,
-        accountAge: 365,
-        operationsCount: 5,
-        trustlineCount: 1,
-        isValid: true,
-        firstTransactionDate: "2024-01-01T00:00:00.000Z",
-      },
-    }),
-  };
-});
-
 vi.mock("../services/stellar.service", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("../services/stellar.service")>();
@@ -70,20 +48,44 @@ runIntegration("API integration", () => {
     process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test_jwt_secret";
     process.env.ADMIN_SECRET = process.env.ADMIN_SECRET ?? "test_admin";
 
-    await prisma.user.deleteMany({ where: { walletAddress: WALLET } });
-    await prisma.creditEvent.deleteMany({});
+    await prisma.creditEvent.deleteMany({
+      where: { txHash: "integration_test_tx_hash_unique" },
+    });
+
+    await prisma.user.upsert({
+      where: { walletAddress: WALLET },
+      update: { score: 120, profileTier: "C" },
+      create: {
+        walletAddress: WALLET,
+        score: 120,
+        profileTier: "C",
+        stellarData: { isValid: true },
+      },
+    });
+
+    await prisma.platform.upsert({
+      where: { id: "test-platform" },
+      update: { active: true },
+      create: {
+        id: "test-platform",
+        name: "Test Platform",
+        apiKey: "test_platform_key_integration",
+        webhookSecret: "test_webhook_secret",
+        active: true,
+      },
+    });
   });
 
-  it("registers with signed auth and returns JWT", async () => {
+  it("login with signed auth returns JWT", async () => {
     const response = await request(app)
-      .post("/api/auth/register/signed")
+      .post("/api/auth/login/signed")
       .send({
         walletAddress: WALLET,
         message: "ZCore Authentication\nWallet: test",
         signature: "dGVzdA==",
       });
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     expect(response.body.data.token).toBeDefined();
     expect(response.body.data.score).toBe(120);
   });
@@ -118,18 +120,6 @@ runIntegration("API integration", () => {
   });
 
   it("rejects duplicate event txHash with 409", async () => {
-    await prisma.platform.upsert({
-      where: { id: "test-platform" },
-      update: { active: true },
-      create: {
-        id: "test-platform",
-        name: "Test Platform",
-        apiKey: "test_platform_key_integration",
-        webhookSecret: "test_webhook_secret",
-        active: true,
-      },
-    });
-
     const payload = {
       apiKey: "test_platform_key_integration",
       eventType: "escrow_completed",

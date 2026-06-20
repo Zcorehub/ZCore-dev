@@ -54,12 +54,12 @@ export function ApiResponseCard({
           </Alert>
         )}
 
-        {data && success && (
+        {success && data != null ? (
           <div className="rounded-lg bg-muted p-4">
             <div className="text-xs font-medium mb-2 text-muted-foreground">Response Data:</div>
             <pre className="text-xs overflow-auto max-h-96 font-mono">{JSON.stringify(data, null, 2)}</pre>
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   )
