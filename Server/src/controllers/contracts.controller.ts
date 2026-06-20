@@ -113,6 +113,7 @@ export const attestScore = async (
     const result = await attestScoreOnChain(wallet, user.score, user.profileTier);
 
     if (!result) {
+      res.setHeader("Retry-After", "300");
       return res.status(503).json({
         success: false,
         error:
