@@ -13,6 +13,7 @@ export function TierBadge({ tier, className }: { tier: string; className?: strin
 
   return (
     <span
+      aria-label={`Credit tier ${TIER_LABELS[key]}`}
       className={cn(
         "inline-flex items-center border px-3 py-1 text-[10px] font-bold uppercase tracking-zk zk-badge transition-shadow duration-300",
         TIER_COLORS[key],
