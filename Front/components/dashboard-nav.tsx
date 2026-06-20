@@ -70,7 +70,7 @@ export function DashboardNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-zk transition-colors zk-slash",
+                  "relative flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-zk transition-colors zk-slash",
                   active
                     ? "text-white bg-white/[0.08] border border-white/15"
                     : "text-white/40 hover:text-white hover:bg-white/[0.05] border border-transparent"
@@ -78,6 +78,9 @@ export function DashboardNav() {
               >
                 <Icon className="h-3.5 w-3.5" />
                 {item.label}
+                {active && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-px w-4 bg-white/60" />
+                )}
               </Link>
             )
           })}
