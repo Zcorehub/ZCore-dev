@@ -187,10 +187,11 @@ export default function DashboardPage() {
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {recentEvents.map((event) => (
+                        {recentEvents.map((event, idx) => (
                           <div
                             key={event.eventId}
-                            className="flex items-center justify-between gap-4 zk-slash border border-white/[0.06] bg-white/[0.02] p-4 hover:border-white/10 transition-colors"
+                            className="flex items-center justify-between gap-4 zk-slash border border-white/[0.06] bg-white/[0.02] p-4 hover:border-white/10 transition-colors animate-zk-slide-up"
+                            style={{ animationDelay: `${idx * 60}ms` }}
                           >
                             <div className="min-w-0">
                               <p className="text-xs font-bold uppercase tracking-zk text-white/80 truncate">
