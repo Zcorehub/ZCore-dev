@@ -17,7 +17,7 @@ import { getStellarTxUrl } from "@/lib/stellar"
 import { EVENT_TYPE_LABELS, type CreditEventItem, type ScoreHistoryEntry, type UserProfile } from "@/lib/types"
 import { getTierProgress } from "@/lib/tier-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Loader2, Minus, RefreshCw, XCircle } from "lucide-react"
+import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Loader2, Minus, RefreshCw, Sparkles, XCircle } from "lucide-react"
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -181,10 +181,18 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     {recentEvents.length === 0 ? (
-                      <p className="text-xs text-white/40 py-4 text-center tracking-wide">
-                        No credit events yet. Complete escrows, repay loans, or join tandas on
-                        partner platforms to build your score.
-                      </p>
+                      <div className="flex flex-col items-center gap-3 py-8 text-center">
+                        <Sparkles className="h-6 w-6 text-white/15" />
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-zk text-white/40">
+                            No events yet
+                          </p>
+                          <p className="mt-1 text-[10px] text-white/25 max-w-xs">
+                            Complete escrows, repay loans, or join tandas on partner platforms to
+                            build your on-chain credit score.
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="space-y-2">
                         {recentEvents.map((event, idx) => (
