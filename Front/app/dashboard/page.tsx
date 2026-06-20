@@ -14,10 +14,10 @@ import { apiClient } from "@/lib/api-client"
 import { formatUserFacingError, mapApiError } from "@/lib/api-errors"
 import { AuthService } from "@/lib/auth"
 import { getStellarTxUrl } from "@/lib/stellar"
-import { EVENT_TYPE_LABELS, type CreditEventItem, type UserProfile } from "@/lib/types"
+import { EVENT_TYPE_LABELS, type CreditEventItem, type ScoreHistoryEntry, type UserProfile } from "@/lib/types"
 import { getTierProgress } from "@/lib/tier-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowRight, ExternalLink, Loader2, RefreshCw, XCircle } from "lucide-react"
+import { ArrowDown, ArrowRight, ArrowUp, ExternalLink, Loader2, Minus, RefreshCw, XCircle } from "lucide-react"
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [recentEvents, setRecentEvents] = useState<CreditEventItem[]>([])
   const [stellarBase, setStellarBase] = useState(0)
   const [eventsScore, setEventsScore] = useState(0)
+  const [latestDelta, setLatestDelta] = useState<number | null>(null)
 
   const loadData = async () => {
     const wallet = AuthService.getWallet()
@@ -62,6 +63,12 @@ export default function DashboardPage() {
 
     if (historyResult.data) {
       setRecentEvents(historyResult.data.events.slice(0, 5))
+    }
+
+    const scoreHistoryResult = await apiClient.getScoreHistory(wallet)
+    if (scoreHistoryResult.data?.history?.length) {
+      const recent = scoreHistoryResult.data.history[0] as ScoreHistoryEntry
+      setLatestDelta(recent.delta)
     }
   }
 
@@ -113,7 +120,30 @@ export default function DashboardPage() {
                         {profile.score}
                         <span className="text-2xl text-white/30 font-normal"> / 850</span>
                       </div>
-                      <TierBadge tier={profile.profileTier} />
+                      <div className="flex flex-col gap-1.5">
+                        <TierBadge tier={profile.profileTier} />
+                        {latestDelta !== null && (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-zk ${
+                              latestDelta > 0
+                                ? "text-white/70"
+                                : latestDelta < 0
+                                ? "text-white/40"
+                                : "text-white/25"
+                            }`}
+                          >
+                            {latestDelta > 0 ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : latestDelta < 0 ? (
+                              <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <Minus className="h-3 w-3" />
+                            )}
+                            {latestDelta > 0 ? "+" : ""}
+                            {latestDelta} last change
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
