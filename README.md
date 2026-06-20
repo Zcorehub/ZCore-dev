@@ -274,6 +274,13 @@ copy Front\.env.example Front\.env.local
 | `ADMIN_SECRET` | `dev_admin_secret_local` | Key for `POST /api/platforms/register` |
 | `STELLAR_NETWORK` | `testnet` | `testnet` or `mainnet` |
 | `PORT` | `3000` | API port |
+| `UPSTASH_REDIS_REST_URL` | optional | Upstash Redis REST URL for public API rate limits |
+| `UPSTASH_REDIS_REST_TOKEN` | optional | Upstash Redis REST token for public API rate limits |
+
+Public API rate limits protect `POST /api/auth/challenge`, signed auth routes,
+`POST /api/events/report`, and `GET /api/user/{wallet}/score`. If Redis is not
+configured or is temporarily unavailable, the API logs a warning and allows the
+request so health checks and local development are not blocked.
 
 #### `Front/.env.local`
 
