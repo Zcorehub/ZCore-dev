@@ -20,7 +20,7 @@ import {
   type AdminLender,
   type AdminPlatform,
 } from "@/lib/admin-client"
-import { Loader2, ShieldCheck, XCircle } from "lucide-react"
+import { CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react"
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -154,16 +154,25 @@ export default function AdminPage() {
         )}
 
         <Card>
-          <CardHeader>
-            <CardTitle>Health</CardTitle>
-            <CardDescription>API readiness check</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle>System Health</CardTitle>
+              <CardDescription>API readiness probe</CardDescription>
+            </div>
+            {healthOk === null ? (
+              <Loader2 className="h-4 w-4 animate-spin text-white/30" />
+            ) : healthOk ? (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-zk text-white/60">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Operational
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-zk text-white/40">
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
+                Unavailable
+              </div>
+            )}
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-white/70">
-              /health/ready:{" "}
-              {healthOk === null ? "checking..." : healthOk ? "OK" : "Unavailable"}
-            </p>
-          </CardContent>
         </Card>
 
         <Card>
@@ -202,9 +211,10 @@ export default function AdminPage() {
               </Button>
             </form>
             {lastRegisteredKey && (
-              <p className="mt-3 text-xs font-mono text-white/60 break-all">
-                New API key: {lastRegisteredKey}
-              </p>
+              <div className="mt-4 border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[10px] uppercase tracking-zk-wide text-white/30 mb-1">New API key — save it now</p>
+                <p className="text-xs font-mono text-white/70 break-all select-all">{lastRegisteredKey}</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -295,8 +305,16 @@ export default function AdminPage() {
                         <TableCell className="text-xs font-mono">
                           {event.walletAddress.slice(0, 8)}...
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums">
-                          {event.scoreImpact >= 0 ? "+" : ""}
+                        <TableCell
+                          className={`text-xs tabular-nums font-bold ${
+                            event.scoreImpact > 0
+                              ? "text-white/70"
+                              : event.scoreImpact < 0
+                              ? "text-white/35"
+                              : "text-white/20"
+                          }`}
+                        >
+                          {event.scoreImpact > 0 ? "+" : ""}
                           {event.scoreImpact}
                         </TableCell>
                       </TableRow>
