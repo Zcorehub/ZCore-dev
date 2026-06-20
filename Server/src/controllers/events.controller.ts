@@ -8,6 +8,10 @@ import {
   calculateStellarBase,
 } from "../services/scoring.service";
 import {
+  MIN_WALLET_AGE_DAYS,
+  MONTHLY_SCORING_CAP,
+} from "../constants/scoring.constants";
+import {
   fetchStellarWalletData,
   verifyTransaction,
 } from "../services/stellar.service";
@@ -17,8 +21,6 @@ import {
 } from "../services/webhook.service";
 import { eventsReportedTotal } from "../services/metrics.service";
 
-const MIN_WALLET_AGE_DAYS = 30;
-const MONTHLY_SCORING_CAP = 10;
 
 /**
  * @swagger

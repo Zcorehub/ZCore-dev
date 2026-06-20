@@ -1,6 +1,9 @@
 export const SCORE_MAX = 850;
 export const STELLAR_BASE_MAX = 150;
 
+export const MIN_WALLET_AGE_DAYS = 30;
+export const MONTHLY_SCORING_CAP = 10;
+
 export const PROFILE_TIER_THRESHOLDS = {
   A: 600,
   B: 350,
