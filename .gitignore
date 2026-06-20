@@ -11,6 +11,9 @@ api-docs.json
 # Vercel local link (may contain project ids)
 .vercel
 
+# Rust build outputs
+target/
+
 # OS
 .DS_Store
 Thumbs.db

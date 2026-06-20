@@ -6,6 +6,12 @@ Smart contracts for on-chain credit score attestation on Stellar.
 
 Stores portable credit scores attested by the ZCore oracle. Lenders and DeFi protocols can read scores directly from chain without calling the ZCore API.
 
+## mock-score-registry
+
+TEST ONLY local mock for Server integration tests. It implements the same `get_score(wallet)` read shape and `interface_version()` value as `score-registry`, but has no admin authorization and exposes `set_mock_score(wallet, score, tier)` so tests can seed scores quickly.
+
+Build it from `Contracts/mock-score-registry` with `stellar contract build`, deploy to a local sandbox, then point Server tests at it with `withMockContractId("<MOCK_CONTRACT_ID>")`.
+
 ### Functions
 
 | Function | Auth | Description |
