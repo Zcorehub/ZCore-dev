@@ -82,7 +82,7 @@ runIntegration("API integration", () => {
       .send({
         walletAddress: WALLET,
         message: "ZCore Authentication\nWallet: test",
-        signature: "dGVzdA==",
+        signature: "dGVzdFNpZ24=",
       });
 
     expect(response.status).toBe(200);
@@ -101,7 +101,7 @@ runIntegration("API integration", () => {
       .send({
         walletAddress: WALLET,
         message: "ZCore Authentication\nWallet: test",
-        signature: "dGVzdA==",
+        signature: "dGVzdFNpZ24=",
       });
 
     const token = auth.body.data.token as string;
