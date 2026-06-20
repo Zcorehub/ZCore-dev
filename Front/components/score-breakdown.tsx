@@ -18,35 +18,39 @@ export function ScoreBreakdown({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex h-2 w-full overflow-hidden bg-white/[0.06]">
+      <div className="relative flex h-3 w-full overflow-hidden bg-white/[0.06]">
         {stellarBase > 0 && (
           <div
-            className="bg-gradient-to-r from-neutral-600 via-white to-neutral-400 transition-all"
+            className="h-full bg-gradient-to-r from-neutral-500 via-white to-neutral-300 transition-all duration-700"
             style={{ width: `${stellarPct}%` }}
             title={`Stellar Base: ${stellarBase}`}
           />
         )}
         {eventsScore > 0 && (
           <div
-            className="bg-gradient-to-r from-neutral-700 via-neutral-400 to-neutral-500 transition-all"
+            className="h-full bg-gradient-to-r from-neutral-600 via-neutral-400 to-neutral-500 transition-all duration-700 ml-px"
             style={{ width: `${eventsPct}%` }}
             title={`Partner Events: ${eventsScore}`}
           />
         )}
       </div>
       <div className="grid grid-cols-2 gap-4 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 bg-white/80 shrink-0" />
+        <div className="flex items-start gap-2">
+          <span className="mt-1 h-2 w-2 shrink-0 bg-white/80" />
           <div>
             <p className="font-bold uppercase tracking-zk text-white/70">Stellar Base</p>
-            <p className="text-white/40">{stellarBase} / 150 pts</p>
+            <p className="text-white/40">
+              {stellarBase} <span className="text-white/25">/ 150 pts</span>
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 bg-neutral-500 shrink-0" />
+        <div className="flex items-start gap-2">
+          <span className="mt-1 h-2 w-2 shrink-0 bg-neutral-500" />
           <div>
             <p className="font-bold uppercase tracking-zk text-white/70">Partner Events</p>
-            <p className="text-white/40">{eventsScore} pts</p>
+            <p className="text-white/40">
+              {eventsScore} <span className="text-white/25">pts</span>
+            </p>
           </div>
         </div>
       </div>
