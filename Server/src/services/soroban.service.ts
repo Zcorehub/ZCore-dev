@@ -13,6 +13,20 @@ export interface OnChainScoreRecord {
   validUntil?: number;
 }
 
+export function sorobanU64ToSafeNumber(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  if (typeof value === "bigint") {
+    return value >= 0n && value <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(value)
+      : null;
+  }
+
+  return null;
+}
+
 export function tierToCode(tier: string): number {
   return tierLabelToCode(tier);
 }
@@ -21,6 +35,51 @@ export { tierCodeToLabel };
 
 export function getInterfaceVersion(): number {
   return ZCORE_INTERFACE_VERSION;
+}
+
+export type GateTier = "A" | "B" | "C";
+
+export interface TierGateDecision {
+  allowed: boolean;
+  tier: string;
+  tierCode: number;
+  minimumTier: GateTier;
+  minimumTierCode: number;
+}
+
+export function isTierGateRecordFresh(
+  record: OnChainScoreRecord,
+  nowEpochSeconds: number = Math.floor(Date.now() / 1000)
+): boolean {
+  if (!Number.isFinite(record.updatedAt) || record.updatedAt <= 0) {
+    return false;
+  }
+
+  const validUntil = record.validUntil;
+  if (validUntil === undefined || validUntil === 0) {
+    return true;
+  }
+
+  return Number.isFinite(validUntil) && validUntil >= nowEpochSeconds;
+}
+
+export function evaluateTierGate(
+  record: OnChainScoreRecord,
+  minimumTier: GateTier
+): TierGateDecision {
+  const tier = tierCodeToLabel(record.tier);
+  // Normalize unknown contract output through the canonical mapping so a
+  // malformed tier fails closed as REJECTED instead of accidentally passing.
+  const tierCode = tierLabelToCode(tier);
+  const minimumTierCode = tierLabelToCode(minimumTier);
+
+  return {
+    allowed: tierCode >= minimumTierCode,
+    tier,
+    tierCode,
+    minimumTier,
+    minimumTierCode,
+  };
 }
 
 async function getNetworkPassphrase(): Promise<string> {
@@ -95,15 +154,25 @@ export async function readOnChainScore(
     const native = scValToNative(result) as {
       score: number;
       tier: number;
-      updated_at: number;
-      valid_until?: number;
+      updated_at: number | bigint;
+      valid_until?: number | bigint;
     };
+
+    const updatedAt = sorobanU64ToSafeNumber(native.updated_at);
+    const validUntil =
+      native.valid_until === undefined
+        ? undefined
+        : sorobanU64ToSafeNumber(native.valid_until);
+    if (updatedAt === null || validUntil === null) {
+      console.error("Soroban score returned an unsafe u64 timestamp");
+      return null;
+    }
 
     return {
       score: native.score,
       tier: native.tier,
-      updatedAt: native.updated_at,
-      validUntil: native.valid_until,
+      updatedAt,
+      validUntil,
     };
   } catch (error) {
     console.error("Failed to read on-chain score:", error);
